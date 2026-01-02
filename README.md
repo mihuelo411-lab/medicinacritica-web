@@ -31,6 +31,12 @@ El sitio público se sirve desde la carpeta `docs/` usando GitHub Pages. Para ev
 - Compila siempre con `./flutterw build web --release --base-href /medicinacritica-web/ -o docs` para que `<base href>` apunte al subdirectorio correcto dentro de `mihuelo411-lab.github.io`.
 - **No borres `docs/.nojekyll`**. Sin ese archivo, Pages intenta procesar el build con Jekyll y omite assets como `main.dart.js`, dejando el sitio sin contenido aunque el deploy sea exitoso.
 
+## Sesión e inactividad
+
+- Toda la app se controla a través de `AuthGate` ( `lib/features/auth/presentation/auth_gate.dart` ). Aquí se inicia un temporizador global de inactividad (`_sessionTimeout`, por defecto 15 min). El temporizador se reinicia automáticamente con cada interacción de puntero (`Listener` global) y se cancela al cerrar sesión.
+- Cuando el temporizador expira, `_handleSessionTimeout()` llama a `signOut()` y setea un `infoMessage`. Ese mensaje se muestra en `LoginScreen` para notificar al usuario que su sesión se cerró por inactividad.
+- Si alguna vez cambia el tiempo deseado, basta modificar la constante `_sessionTimeout`.
+
 ## Getting Started
 
 Resources para aprender Flutter:
