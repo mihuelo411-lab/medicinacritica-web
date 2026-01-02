@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../admin/presentation/admin_panel_screen.dart';
 import '../../dashboard/presentation/uci_monitor_screen.dart';
+import '../../../core/constants/supabase_credentials.dart';
 import '../data/auth_repository.dart';
 import '../domain/profile.dart';
 
@@ -301,7 +302,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               : _buildLoginForm(),
                         ),
                         const SizedBox(height: 16),
-                        if (!widget.isBootstrapMode)
+                        if (!widget.isBootstrapMode && SupabaseCredentials.enableGoogleOAuth)
                           Padding(
                             padding: const EdgeInsets.only(bottom: 12),
                             child: Column(

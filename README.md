@@ -37,6 +37,12 @@ El sitio público se sirve desde la carpeta `docs/` usando GitHub Pages. Para ev
 - Cuando el temporizador expira, `_handleSessionTimeout()` llama a `signOut()` y setea un `infoMessage`. Ese mensaje se muestra en `LoginScreen` para notificar al usuario que su sesión se cerró por inactividad.
 - Si alguna vez cambia el tiempo deseado, basta modificar la constante `_sessionTimeout`.
 
+## OAuth con Google (opcional)
+
+- El botón “Continuar con Google” sólo se muestra si `SupabaseCredentials.enableGoogleOAuth` está en `true`.
+- Mantén ese flag en `false` mientras el proveedor no esté activado desde el panel de Supabase; de lo contrario, Supabase responderá con `Unsupported provider`.
+- Una vez habilites Google en tu proyecto y copies los IDs/secretos requeridos, cambia el flag a `true` para reactivar el botón.
+
 ## Getting Started
 
 Resources para aprender Flutter:
