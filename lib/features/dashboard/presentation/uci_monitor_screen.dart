@@ -72,7 +72,7 @@ class _UciMonitorScreenState extends State<UciMonitorScreen> {
     final vasoMap = await _fetchVasoactiveStatus(map);
     final readmissionCount = admissions.where((a) => a.admission.isReadmission).length;
     final dischargedCount = await _fetchDischargedCount();
-    final totalPatients = await _fetchTotalPatientsCount();
+    final totalPatients = dischargedCount + map.length;
 
     if (mounted) {
       setState(() {
@@ -89,21 +89,8 @@ class _UciMonitorScreenState extends State<UciMonitorScreen> {
   Future<int> _fetchDischargedCount() async {
     try {
       final row = await appDatabase.customSelect(
-        'SELECT COUNT(*) AS total FROM admissions WHERE status = ?',
-        variables: [drift.Variable.withString('alta')],
+        'SELECT COUNT(*) AS total FROM admissions WHERE discharged_at IS NOT NULL',
         readsFrom: {appDatabase.admissions},
-      ).getSingle();
-      return row.read<int>('total');
-    } catch (_) {
-      return 0;
-    }
-  }
-
-  Future<int> _fetchTotalPatientsCount() async {
-    try {
-      final row = await appDatabase.customSelect(
-        'SELECT COUNT(*) AS total FROM patients',
-        readsFrom: {appDatabase.patients},
       ).getSingle();
       return row.read<int>('total');
     } catch (_) {

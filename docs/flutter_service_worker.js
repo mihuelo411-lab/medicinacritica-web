@@ -5,11 +5,11 @@ const CACHE_NAME = 'flutter-app-cache';
 
 const RESOURCES = {"manifest.json": "b51db287d1bf4608b00bfbd120284f62",
 "AssetManifest.json": "8a80554c91d9fca8acb82f023de02f11",
-"flutter_bootstrap.js": "39256f734639fd1d3eb09a4dd3007b3c",
+"flutter_bootstrap.js": "3bc3218185771192cfba7189e830c400",
 "drift_worker.js.deps": "0bf16607b39c651469f6bbbb97e39c65",
 "drift_worker.js": "e17ee0d114879428c683ed64cb7b28c9",
 "drift_worker.js.map": "e57af4d82a486ff6debbafcc13b12088",
-"main.dart.js": "cfb75a8dc6769af6d2803f91aa6b28df",
+"main.dart.js": "d6a5e2f58785a6fddca7b7968cf924eb",
 "drift_worker.dart": "eb8219d0cb3e6396dee4f89b6f833ecc",
 "flutter.js": "24bc71911b75b5f8135c949e27a2984e",
 "version.json": "bd56c69a8e92c2cf5096eb2a64c674c1",
