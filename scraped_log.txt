@@ -1,0 +1,6 @@
+[13/12/2025, 10:11:57 p. m.] PETICIÓN RECIBIDA - DNI: 12345678
+[13/12/2025, 10:14:54 p. m.] PETICIÓN RECIBIDA - DNI: 45574984
+[13/12/2025, 10:15:56 p. m.] ERROR FATAL para DNI 45574984: Navigation timeout of 60000 ms exceeded
+[13/12/2025, 11:13:51 p. m.] PETICIÓN RECIBIDA - DNI: 45574984
+[13/12/2025, 11:14:52 p. m.] ERROR FATAL para DNI 45574984: Navigation timeout of 60000 ms exceeded
+[13/12/2025, 11:14:52 p. m.] SNAPSHOT ERROR guardado en error_snapshot.png

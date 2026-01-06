@@ -1,0 +1,715 @@
+/* ⚠️ Script maestro: crea/actualiza el esquema sin borrar datos existentes.
+   Ejecuta en el editor SQL de Supabase bajo tu proyecto. */
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'user_role') THEN
+    CREATE TYPE user_role AS ENUM ('admin', 'medico', 'residente');
+  END IF;
+END
+$$;
+
+ALTER TYPE user_role ADD VALUE IF NOT EXISTS 'admin';
+ALTER TYPE user_role ADD VALUE IF NOT EXISTS 'medico';
+ALTER TYPE user_role ADD VALUE IF NOT EXISTS 'residente';
+
+CREATE TABLE IF NOT EXISTS patients (
+  id               SERIAL PRIMARY KEY,
+  name             VARCHAR(100) NOT NULL,
+  dni              TEXT NOT NULL UNIQUE,
+  hc               TEXT NOT NULL UNIQUE,
+  age              INTEGER NOT NULL,
+  sex              TEXT NOT NULL,
+  address          TEXT,
+  occupation       TEXT,
+  phone            TEXT,
+  family_contact   TEXT,
+  place_of_birth   TEXT,
+  insurance_type   TEXT,
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  is_synced        BOOLEAN NOT NULL DEFAULT FALSE
+);
+
+ALTER TABLE IF EXISTS public.patients
+  ADD COLUMN IF NOT EXISTS address TEXT,
+  ADD COLUMN IF NOT EXISTS occupation TEXT,
+  ADD COLUMN IF NOT EXISTS phone TEXT,
+  ADD COLUMN IF NOT EXISTS family_contact TEXT,
+  ADD COLUMN IF NOT EXISTS place_of_birth TEXT,
+  ADD COLUMN IF NOT EXISTS insurance_type TEXT,
+  ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  ADD COLUMN IF NOT EXISTS is_synced BOOLEAN NOT NULL DEFAULT FALSE;
+
+CREATE TABLE IF NOT EXISTS admissions (
+  id               SERIAL PRIMARY KEY,
+  patient_id       INTEGER NOT NULL REFERENCES patients(id) ON DELETE CASCADE,
+  admission_date   TIMESTAMPTZ NOT NULL,
+  sofa_score       DOUBLE PRECISION,
+  apache_score     DOUBLE PRECISION,
+  nutric_score     DOUBLE PRECISION,
+  sofa_mortality   TEXT,
+  apache_mortality TEXT,
+  diagnosis        TEXT,
+  signs_symptoms   TEXT,
+  time_of_disease  TEXT,
+  illness_start    TEXT,
+  illness_course   TEXT,
+  story            TEXT,
+  physical_exam    TEXT,
+  plan             TEXT,
+  bp               TEXT,
+  hr               TEXT,
+  rr               TEXT,
+  o2_sat           TEXT,
+  temp             TEXT,
+  vitals_json      JSONB,
+  procedures       TEXT,
+  bed_number       INTEGER,
+  discharged_at    TIMESTAMPTZ,
+  uci_priority     TEXT,
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  is_synced        BOOLEAN NOT NULL DEFAULT FALSE
+);
+
+ALTER TABLE IF EXISTS public.admissions
+  ADD COLUMN IF NOT EXISTS sofa_score DOUBLE PRECISION,
+  ADD COLUMN IF NOT EXISTS apache_score DOUBLE PRECISION,
+  ADD COLUMN IF NOT EXISTS nutric_score DOUBLE PRECISION,
+  ADD COLUMN IF NOT EXISTS sofa_mortality TEXT,
+  ADD COLUMN IF NOT EXISTS apache_mortality TEXT,
+  ADD COLUMN IF NOT EXISTS diagnosis TEXT,
+  ADD COLUMN IF NOT EXISTS signs_symptoms TEXT,
+  ADD COLUMN IF NOT EXISTS time_of_disease TEXT,
+  ADD COLUMN IF NOT EXISTS illness_start TEXT,
+  ADD COLUMN IF NOT EXISTS illness_course TEXT,
+  ADD COLUMN IF NOT EXISTS story TEXT,
+  ADD COLUMN IF NOT EXISTS physical_exam TEXT,
+  ADD COLUMN IF NOT EXISTS plan TEXT,
+  ADD COLUMN IF NOT EXISTS bp TEXT,
+  ADD COLUMN IF NOT EXISTS hr TEXT,
+  ADD COLUMN IF NOT EXISTS rr TEXT,
+  ADD COLUMN IF NOT EXISTS o2_sat TEXT,
+  ADD COLUMN IF NOT EXISTS temp TEXT,
+  ADD COLUMN IF NOT EXISTS vitals_json JSONB,
+  ADD COLUMN IF NOT EXISTS procedures TEXT,
+  ADD COLUMN IF NOT EXISTS bed_number INTEGER,
+  ADD COLUMN IF NOT EXISTS discharged_at TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS uci_priority TEXT,
+  ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  ADD COLUMN IF NOT EXISTS is_synced BOOLEAN NOT NULL DEFAULT FALSE;
+
+CREATE TABLE IF NOT EXISTS evolutions (
+  id                SERIAL PRIMARY KEY,
+  admission_id      INTEGER NOT NULL REFERENCES admissions(id) ON DELETE CASCADE,
+  date              TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  day_of_stay       INTEGER,
+  vitals_json       JSONB,
+  vm_settings_json  JSONB,
+  vm_mechanics_json JSONB,
+  vm_days           INTEGER,
+  vm_active         BOOLEAN,
+  subjective        TEXT,
+  objective_json    JSONB,
+  analysis          TEXT,
+  plan              TEXT,
+  procedures_note   TEXT,
+  diagnosis         TEXT,
+  author_name       TEXT,
+  author_role       TEXT,
+  created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  is_synced         BOOLEAN NOT NULL DEFAULT FALSE
+);
+
+ALTER TABLE IF EXISTS public.evolutions
+  ADD COLUMN IF NOT EXISTS day_of_stay INTEGER,
+  ADD COLUMN IF NOT EXISTS vitals_json JSONB,
+  ADD COLUMN IF NOT EXISTS vm_settings_json JSONB,
+  ADD COLUMN IF NOT EXISTS vm_mechanics_json JSONB,
+  ADD COLUMN IF NOT EXISTS vm_days INTEGER,
+  ADD COLUMN IF NOT EXISTS vm_active BOOLEAN,
+  ADD COLUMN IF NOT EXISTS subjective TEXT,
+  ADD COLUMN IF NOT EXISTS objective_json JSONB,
+  ADD COLUMN IF NOT EXISTS analysis TEXT,
+  ADD COLUMN IF NOT EXISTS plan TEXT,
+  ADD COLUMN IF NOT EXISTS procedures_note TEXT,
+  ADD COLUMN IF NOT EXISTS diagnosis TEXT,
+  ADD COLUMN IF NOT EXISTS author_name TEXT,
+  ADD COLUMN IF NOT EXISTS author_role TEXT,
+  ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  ADD COLUMN IF NOT EXISTS is_synced BOOLEAN NOT NULL DEFAULT FALSE;
+
+CREATE TABLE IF NOT EXISTS indication_sheets (
+  id             SERIAL PRIMARY KEY,
+  admission_id   INTEGER NOT NULL REFERENCES admissions(id) ON DELETE CASCADE,
+  payload        TEXT NOT NULL,
+  created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  is_synced      BOOLEAN NOT NULL DEFAULT FALSE
+);
+
+ALTER TABLE IF EXISTS public.indication_sheets
+  ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  ADD COLUMN IF NOT EXISTS is_synced BOOLEAN NOT NULL DEFAULT FALSE;
+
+CREATE TABLE IF NOT EXISTS epicrisis_notes (
+  id             SERIAL PRIMARY KEY,
+  admission_id   INTEGER NOT NULL REFERENCES admissions(id) ON DELETE CASCADE,
+  payload        TEXT NOT NULL,
+  created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  is_synced      BOOLEAN NOT NULL DEFAULT FALSE
+);
+
+ALTER TABLE IF EXISTS public.epicrisis_notes
+  ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  ADD COLUMN IF NOT EXISTS is_synced BOOLEAN NOT NULL DEFAULT FALSE;
+
+CREATE TABLE IF NOT EXISTS exam_templates (
+  id             SERIAL PRIMARY KEY,
+  name           TEXT NOT NULL,
+  category       TEXT,
+  description    TEXT,
+  fields_json    JSONB NOT NULL DEFAULT '[]'::jsonb,
+  version        INTEGER NOT NULL DEFAULT 1,
+  is_archived    BOOLEAN NOT NULL DEFAULT FALSE,
+  created_by     TEXT,
+  created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  is_synced      BOOLEAN NOT NULL DEFAULT FALSE
+);
+
+ALTER TABLE IF EXISTS public.exam_templates
+  ADD COLUMN IF NOT EXISTS category TEXT,
+  ADD COLUMN IF NOT EXISTS description TEXT,
+  ADD COLUMN IF NOT EXISTS fields_json JSONB NOT NULL DEFAULT '[]'::jsonb,
+  ADD COLUMN IF NOT EXISTS version INTEGER NOT NULL DEFAULT 1,
+  ADD COLUMN IF NOT EXISTS is_archived BOOLEAN NOT NULL DEFAULT FALSE,
+  ADD COLUMN IF NOT EXISTS created_by TEXT,
+  ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  ADD COLUMN IF NOT EXISTS is_synced BOOLEAN NOT NULL DEFAULT FALSE;
+
+CREATE TABLE IF NOT EXISTS exam_results (
+  id               SERIAL PRIMARY KEY,
+  admission_id     INTEGER NOT NULL REFERENCES admissions(id) ON DELETE CASCADE,
+  template_id      INTEGER NOT NULL REFERENCES exam_templates(id) ON DELETE CASCADE,
+  template_version INTEGER NOT NULL DEFAULT 1,
+  recorded_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  values_json      JSONB NOT NULL DEFAULT '{}'::jsonb,
+  note             TEXT,
+  attachments      TEXT,
+  recorded_by      TEXT,
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  is_synced        BOOLEAN NOT NULL DEFAULT FALSE
+);
+
+ALTER TABLE IF EXISTS public.exam_results
+  ADD COLUMN IF NOT EXISTS template_version INTEGER NOT NULL DEFAULT 1,
+  ADD COLUMN IF NOT EXISTS recorded_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  ADD COLUMN IF NOT EXISTS values_json JSONB NOT NULL DEFAULT '{}'::jsonb,
+  ADD COLUMN IF NOT EXISTS note TEXT,
+  ADD COLUMN IF NOT EXISTS attachments TEXT,
+  ADD COLUMN IF NOT EXISTS recorded_by TEXT,
+  ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  ADD COLUMN IF NOT EXISTS is_synced BOOLEAN NOT NULL DEFAULT FALSE;
+
+ALTER TABLE public.exam_templates ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.exam_results ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Usuarios autenticados ven plantillas" ON public.exam_templates;
+CREATE POLICY "Usuarios autenticados ven plantillas"
+  ON public.exam_templates
+  FOR SELECT USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Admins gestionan plantillas" ON public.exam_templates;
+CREATE POLICY "Admins gestionan plantillas"
+  ON public.exam_templates
+  FOR ALL USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE profiles.user_id = auth.uid()
+        AND profiles.role = 'admin'
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE profiles.user_id = auth.uid()
+        AND profiles.role = 'admin'
+    )
+  );
+
+DROP POLICY IF EXISTS "Usuarios autenticados ven resultados" ON public.exam_results;
+CREATE POLICY "Usuarios autenticados ven resultados"
+  ON public.exam_results
+  FOR SELECT USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Usuarios pueden registrar resultados" ON public.exam_results;
+CREATE POLICY "Usuarios pueden registrar resultados"
+  ON public.exam_results
+  FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Usuarios pueden actualizar resultados" ON public.exam_results;
+CREATE POLICY "Usuarios pueden actualizar resultados"
+  ON public.exam_results
+  FOR UPDATE USING (auth.role() = 'authenticated');
+
+CREATE TABLE IF NOT EXISTS profiles (
+  user_id      UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  full_name    TEXT,
+  dni          TEXT UNIQUE,
+  cmp          TEXT,
+  role         user_role NOT NULL DEFAULT 'medico',
+  approved_at  TIMESTAMPTZ,
+  approved_by  UUID REFERENCES auth.users(id),
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS pending_users (
+  user_id        UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  full_name      TEXT,
+  dni            TEXT,
+  cmp            TEXT,
+  email          TEXT,
+  requested_role user_role NOT NULL DEFAULT 'medico',
+  created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_admissions_patient ON admissions(patient_id);
+CREATE INDEX IF NOT EXISTS idx_evolutions_admission ON evolutions(admission_id);
+CREATE INDEX IF NOT EXISTS idx_evolutions_date ON evolutions(date);
+CREATE INDEX IF NOT EXISTS idx_indication_sheets_admission ON indication_sheets(admission_id);
+CREATE INDEX IF NOT EXISTS idx_epicrisis_notes_admission ON epicrisis_notes(admission_id);
+CREATE INDEX IF NOT EXISTS idx_exam_results_admission ON exam_results(admission_id);
+CREATE INDEX IF NOT EXISTS idx_exam_results_template ON exam_results(template_id);
+
+CREATE OR REPLACE FUNCTION register_patient_admission(
+  p_dni TEXT,
+  p_name TEXT,
+  p_hc TEXT,
+  p_age INTEGER,
+  p_sex TEXT,
+  p_address TEXT DEFAULT NULL,
+  p_occupation TEXT DEFAULT NULL,
+  p_phone TEXT DEFAULT NULL,
+  p_family_contact TEXT DEFAULT NULL,
+  p_place_of_birth TEXT DEFAULT NULL,
+  p_insurance_type TEXT DEFAULT NULL,
+  p_bed_number INTEGER DEFAULT NULL,
+  p_diagnosis TEXT DEFAULT NULL,
+  p_sofa_score DOUBLE PRECISION DEFAULT NULL,
+  p_apache_score DOUBLE PRECISION DEFAULT NULL
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_patient_id INTEGER;
+  v_admission_id INTEGER;
+  v_status TEXT;
+BEGIN
+  SELECT id INTO v_patient_id FROM patients WHERE dni = p_dni LIMIT 1;
+
+  IF v_patient_id IS NULL THEN
+    INSERT INTO patients (
+      name, dni, hc, age, sex, address, occupation, phone,
+      family_contact, place_of_birth, insurance_type, created_at, updated_at, is_synced
+    ) VALUES (
+      p_name, p_dni, p_hc, COALESCE(p_age, 0), COALESCE(p_sex, 'Desconocido'),
+      p_address, p_occupation, p_phone, p_family_contact, p_place_of_birth,
+      p_insurance_type, NOW(), NOW(), TRUE
+    )
+    RETURNING id INTO v_patient_id;
+    v_status := 'NUEVO';
+  ELSE
+    UPDATE patients
+       SET name = COALESCE(p_name, name),
+           hc = COALESCE(NULLIF(p_hc, ''), hc),
+           age = COALESCE(p_age, age),
+           sex = COALESCE(p_sex, sex),
+           address = COALESCE(p_address, address),
+           occupation = COALESCE(p_occupation, occupation),
+           phone = COALESCE(p_phone, phone),
+           family_contact = COALESCE(p_family_contact, family_contact),
+           place_of_birth = COALESCE(p_place_of_birth, place_of_birth),
+           insurance_type = COALESCE(p_insurance_type, insurance_type),
+           updated_at = NOW()
+     WHERE id = v_patient_id;
+    v_status := 'REINGRESO';
+  END IF;
+
+  UPDATE admissions
+     SET discharged_at = NOW()
+   WHERE patient_id = v_patient_id
+     AND discharged_at IS NULL;
+
+  INSERT INTO admissions (
+    patient_id, admission_date, diagnosis, sofa_score, apache_score,
+    bed_number, nutric_score, created_at, is_synced
+  ) VALUES (
+    v_patient_id,
+    NOW(),
+    p_diagnosis,
+    p_sofa_score,
+    p_apache_score,
+    p_bed_number,
+    NULL,
+    NOW(),
+    TRUE
+  )
+  RETURNING id INTO v_admission_id;
+
+  RETURN jsonb_build_object(
+    'status', v_status,
+    'patient_id', v_patient_id,
+    'admission_id', v_admission_id
+  );
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE
+  v_role user_role := 'medico';
+BEGIN
+  IF new.raw_user_meta_data->>'requested_role' IS NOT NULL THEN
+    BEGIN
+      v_role := (new.raw_user_meta_data->>'requested_role')::user_role;
+    EXCEPTION WHEN others THEN
+      v_role := 'medico';
+    END;
+  END IF;
+
+  INSERT INTO public.profiles (user_id, full_name, dni, cmp, role, created_at)
+  VALUES (
+    new.id,
+    new.raw_user_meta_data->>'full_name',
+    new.raw_user_meta_data->>'dni',
+    new.raw_user_meta_data->>'cmp',
+    v_role,
+    now()
+  )
+  ON CONFLICT (user_id) DO NOTHING;
+
+  INSERT INTO public.pending_users (user_id, full_name, dni, cmp, email, requested_role, created_at)
+  VALUES (
+    new.id,
+    new.raw_user_meta_data->>'full_name',
+    new.raw_user_meta_data->>'dni',
+    new.raw_user_meta_data->>'cmp',
+    new.email,
+    v_role,
+    now()
+  )
+  ON CONFLICT (user_id) DO NOTHING;
+
+  RETURN new;
+END;
+$$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger
+    WHERE tgname = 'on_auth_user_created'
+  ) THEN
+    CREATE TRIGGER on_auth_user_created
+      AFTER INSERT ON auth.users
+      FOR EACH ROW
+      EXECUTE PROCEDURE public.handle_new_user();
+  END IF;
+END;
+$$;
+
+CREATE TABLE IF NOT EXISTS public.procedure_reports (
+  id bigserial primary key,
+  period_year int not null,
+  period_month int not null,
+  csv_data text not null,
+  storage_path text,
+  created_by uuid references auth.users(id),
+  created_at timestamptz default now()
+);
+
+ALTER TABLE public.procedure_reports ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Usuarios autenticados pueden leer reportes" ON public.procedure_reports;
+CREATE POLICY "Usuarios autenticados pueden leer reportes"
+  ON public.procedure_reports
+  FOR SELECT USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Solo RPC inserta reportes" ON public.procedure_reports;
+CREATE POLICY "Solo RPC inserta reportes"
+  ON public.procedure_reports
+  FOR INSERT WITH CHECK (false);
+
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('reports', 'reports', true)
+ON CONFLICT (id) DO NOTHING;
+
+DROP POLICY IF EXISTS "reports public read" ON storage.objects;
+CREATE POLICY "reports public read"
+  ON storage.objects FOR SELECT
+  USING (bucket_id = 'reports');
+
+DROP POLICY IF EXISTS "reports authenticated upload" ON storage.objects;
+CREATE POLICY "reports authenticated upload"
+  ON storage.objects FOR INSERT TO authenticated
+  WITH CHECK (bucket_id = 'reports');
+
+DROP POLICY IF EXISTS "reports authenticated update" ON storage.objects;
+CREATE POLICY "reports authenticated update"
+  ON storage.objects FOR UPDATE TO authenticated
+  USING (bucket_id = 'reports')
+  WITH CHECK (bucket_id = 'reports');
+
+CREATE OR REPLACE FUNCTION public.generate_procedure_report(
+  p_year int,
+  p_month int
+)
+RETURNS public.procedure_reports
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_start date := make_date(p_year, p_month, 1);
+  v_end date := (v_start + interval '1 month');
+  v_header text := 'FECHA y/ HORA;CAMA;PACIENTE;HC;DIAGNÓSTICO;PROCEDIMIENTO;ASISTENTE;RESIDENTE;ORIGEN;NOTA';
+  v_rows text;
+  v_csv text;
+  v_report public.procedure_reports;
+BEGIN
+  IF p_year IS NULL OR p_month IS NULL THEN
+    RAISE EXCEPTION 'Debe indicar año y mes';
+  END IF;
+
+  WITH procedure_rows AS (
+    SELECT
+      pp.performed_at,
+      COALESCE(ad.bed_number::text, '-') AS bed_label,
+      COALESCE(pa.name, 'Desconocido') AS patient_name,
+      COALESCE(pa.hc, '-') AS hc_text,
+      COALESCE(REPLACE(ad.diagnosis, E'\n', ' '), '-') AS diagnosis_text,
+      pp.procedure_name,
+      COALESCE(pp.assistant, '') AS assistant_name,
+      COALESCE(pp.resident, '') AS resident_name,
+      CASE
+        WHEN COALESCE(pp.origin, '') = '' THEN 'SIN ORIGEN'
+        WHEN pp.guardia IS NOT NULL THEN initcap(pp.origin) || ' - ' || pp.guardia
+        ELSE initcap(pp.origin)
+      END AS origin_label,
+      COALESCE(REPLACE(pp.note, E'\n', ' '), '') AS note_text
+    FROM public.performed_procedures pp
+    JOIN public.admissions ad ON ad.id = pp.admission_id
+    JOIN public.patients pa ON pa.id = ad.patient_id
+    WHERE pp.performed_at >= v_start
+      AND pp.performed_at < v_end
+    UNION ALL
+    SELECT
+      ep.performed_at,
+      COALESCE(ep.service_room, 'Interconsulta') AS bed_label,
+      COALESCE(pa.name, 'Desconocido') AS patient_name,
+      COALESCE(pa.hc, '-') AS hc_text,
+      COALESCE(REPLACE(ep.diagnosis, E'\n', ' '), '-') AS diagnosis_text,
+      COALESCE(ep.procedure_name, pc.name, 'Procedimiento') AS procedure_name,
+      COALESCE(ep.assistant_name, '') AS assistant_name,
+      COALESCE(ep.resident_name, '') AS resident_name,
+      CASE
+        WHEN COALESCE(ep.service_room, '') = ''
+          THEN 'INTERCONSULTA'
+        ELSE 'Interconsulta - ' || initcap(ep.service_room)
+      END AS origin_label,
+      COALESCE(REPLACE(ep.note, E'\n', ' '), '') AS note_text
+    FROM public.external_procedures ep
+    JOIN public.patients pa ON pa.id = ep.patient_id
+    LEFT JOIN public.procedure_catalog pc ON pc.id = ep.procedure_catalog_id
+    WHERE ep.performed_at >= v_start
+      AND ep.performed_at < v_end
+  )
+  SELECT string_agg(
+           format('%s;%s;%s;%s;%s;%s;%s;%s;%s;%s',
+                  to_char(r.performed_at, 'DD/MM/YYYY HH24:MI'),
+                  r.bed_label,
+                  r.patient_name,
+                  r.hc_text,
+                  r.diagnosis_text,
+                  r.procedure_name,
+                  r.assistant_name,
+                  r.resident_name,
+                  r.origin_label,
+                  r.note_text),
+           E'\n')
+    INTO v_rows
+    FROM procedure_rows r;
+
+  v_csv := v_header || E'\n' || COALESCE(v_rows, '');
+
+  INSERT INTO public.procedure_reports(period_year, period_month, csv_data, created_by)
+  VALUES (p_year, p_month, v_csv, auth.uid())
+  RETURNING * INTO v_report;
+
+  RETURN v_report;
+END;
+$$;
+
+CREATE TABLE IF NOT EXISTS public.procedure_catalog (
+  id serial primary key,
+  code text unique,
+  name text not null,
+  description_template text,
+  category text default 'general',
+  created_at timestamptz default now()
+);
+
+CREATE TABLE IF NOT EXISTS public.external_procedures (
+  id serial primary key,
+  patient_id integer not null references public.patients(id) on delete cascade,
+  procedure_catalog_id integer references public.procedure_catalog(id),
+  performed_at timestamptz default now(),
+  service_room text,
+  diagnosis text,
+  procedure_name text,
+  assistant_name text,
+  resident_name text,
+  note text,
+  created_by uuid references auth.users(id),
+  created_at timestamptz default now()
+);
+
+ALTER TABLE IF EXISTS public.external_procedures
+  ADD COLUMN IF NOT EXISTS service_room text,
+  ADD COLUMN IF NOT EXISTS diagnosis text,
+  ADD COLUMN IF NOT EXISTS procedure_name text,
+  ADD COLUMN IF NOT EXISTS assistant_name text,
+  ADD COLUMN IF NOT EXISTS resident_name text,
+  ADD COLUMN IF NOT EXISTS note text;
+
+CREATE TABLE IF NOT EXISTS public.performed_procedures (
+  id serial primary key,
+  admission_id integer not null references public.admissions(id) on delete cascade,
+  procedure_id integer REFERENCES public.procedure_catalog(id),
+  procedure_name text not null,
+  performed_at timestamptz not null default now(),
+  assistant text,
+  resident text,
+  origin text,
+  guardia text,
+  note text,
+  created_at timestamptz not null default now(),
+  is_synced boolean not null default false
+);
+
+ALTER TABLE IF EXISTS public.performed_procedures
+  ADD COLUMN IF NOT EXISTS note text;
+
+CREATE INDEX IF NOT EXISTS idx_external_procedures_patient ON public.external_procedures(patient_id);
+CREATE INDEX IF NOT EXISTS idx_external_procedures_date ON public.external_procedures(performed_at);
+CREATE INDEX IF NOT EXISTS idx_performed_procedures_admission ON public.performed_procedures(admission_id);
+CREATE INDEX IF NOT EXISTS idx_performed_procedures_performed_at ON public.performed_procedures(performed_at);
+CREATE INDEX IF NOT EXISTS idx_performed_procedures_origin_guardia ON public.performed_procedures(origin, guardia);
+
+ALTER TABLE public.procedure_catalog ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.external_procedures ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Todos pueden ver catalogo" ON public.procedure_catalog;
+CREATE POLICY "Todos pueden ver catalogo" ON public.procedure_catalog
+  FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Solo admin modifica catalogo" ON public.procedure_catalog;
+CREATE POLICY "Solo admin modifica catalogo" ON public.procedure_catalog
+  FOR ALL USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE profiles.user_id = auth.uid()
+      AND profiles.role = 'admin'
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE profiles.user_id = auth.uid()
+      AND profiles.role = 'admin'
+    )
+  );
+
+DROP POLICY IF EXISTS "Usuarios autenticados ven procedimientos" ON public.external_procedures;
+CREATE POLICY "Usuarios autenticados ven procedimientos" ON public.external_procedures
+  FOR SELECT USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Usuarios autenticados crean procedimientos" ON public.external_procedures;
+CREATE POLICY "Usuarios autenticados crean procedimientos" ON public.external_procedures
+  FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Usuarios autenticados editan propiose" ON public.external_procedures;
+CREATE POLICY "Usuarios autenticados editan propiose" ON public.external_procedures
+  FOR UPDATE USING (auth.uid() = created_by);
+
+ALTER TABLE IF EXISTS public.evolutions
+  ADD COLUMN IF NOT EXISTS author_role text,
+  ADD COLUMN IF NOT EXISTS procedures_note text;
+
+INSERT INTO public.procedure_catalog (code, name, category, description_template)
+VALUES 
+('CVC', 'Catéter Venoso Central', 'uci', 'Procedimiento realizado bajo medidas de asepsia y antisepsia.\nSitio: Vena Yugular Interna Derecha.\nIntentos: 1.\nComplicaciones: Ninguna.\nConfirmación: Retorno venoso positivo.'),
+('INT', 'Intubación Endotraqueal', 'uci', 'Se realiza intubación orotraqueal con tubo N° 7.5.\nFijación: 22 cm arcada dentaria.\nLaringoscopia: Cormack-Lehane I.\nComprobación: Auscultación positiva bilateral simétrica.'),
+('LPA', 'Línea Arterial', 'uci', 'Canalización de arteria radial izquierda.\nTest de Allen: Positivo (buena circulación colateral).\nFijación: Sutura seda 3.0.'),
+('TORA', 'Toracentesis', 'interconsulta', 'Punción torácica diagnóstica/terapéutica.\nLado: Derecho.\nLíquido obtenido: Cetrino.\nVolumen extraído: 50 cc para muestra.')
+ON CONFLICT (code) DO NOTHING;
+
+INSERT INTO public.exam_templates (name, category, description, fields_json)
+SELECT
+  'Hemograma completo',
+  'Laboratorio',
+  'Conteo celular y parámetros básicos.',
+  '[
+    {"id":"leucocitos","label":"Leucocitos","type":"number","unit":"cel/µL","minValue":4000,"maxValue":11000},
+    {"id":"neutrofilos","label":"Neutrófilos %","type":"number","unit":"%","minValue":40,"maxValue":75},
+    {"id":"hemoglobina","label":"Hemoglobina","type":"number","unit":"g/dL","minValue":12,"maxValue":16},
+    {"id":"hematocrito","label":"Hematocrito","type":"number","unit":"%","minValue":36,"maxValue":47},
+    {"id":"plaquetas","label":"Plaquetas","type":"number","unit":"x10^3/µL","minValue":150,"maxValue":450}
+  ]'::jsonb
+WHERE NOT EXISTS (SELECT 1 FROM public.exam_templates WHERE name = 'Hemograma completo');
+
+INSERT INTO public.exam_templates (name, category, description, fields_json)
+SELECT
+  'Perfil renal',
+  'Laboratorio',
+  'Urea y creatinina séricas.',
+  '[
+    {"id":"urea","label":"Urea","type":"number","unit":"mg/dL","minValue":10,"maxValue":50,"isCritical":true},
+    {"id":"creatinina","label":"Creatinina","type":"number","unit":"mg/dL","minValue":0.6,"maxValue":1.3,"isCritical":true}
+  ]'::jsonb
+WHERE NOT EXISTS (SELECT 1 FROM public.exam_templates WHERE name = 'Perfil renal');
+
+INSERT INTO public.exam_templates (name, category, description, fields_json)
+SELECT
+  'PCR / Marcadores inflamatorios',
+  'Laboratorio',
+  'Proteína C reactiva sérica.',
+  '[
+    {"id":"pcr","label":"PCR","type":"number","unit":"mg/L","minValue":0,"maxValue":5,"isCritical":true}
+  ]'::jsonb
+WHERE NOT EXISTS (SELECT 1 FROM public.exam_templates WHERE name = 'PCR / Marcadores inflamatorios');
+
+INSERT INTO public.exam_templates (name, category, description, fields_json)
+SELECT
+  'Gasometría arterial',
+  'Respiratorio',
+  'Análisis básico de gases arteriales.',
+  '[
+    {"id":"ph","label":"pH","type":"number","minValue":7.35,"maxValue":7.45,"isCritical":true},
+    {"id":"pco2","label":"PCO2","type":"number","unit":"mmHg","minValue":35,"maxValue":45},
+    {"id":"po2","label":"PO2","type":"number","unit":"mmHg","minValue":80,"maxValue":100,"isCritical":true},
+    {"id":"hco3","label":"HCO3","type":"number","unit":"mmol/L","minValue":22,"maxValue":26},
+    {"id":"lactato","label":"Lactato","type":"number","unit":"mmol/L","minValue":0.5,"maxValue":2.0,"isCritical":true}
+  ]'::jsonb
+WHERE NOT EXISTS (SELECT 1 FROM public.exam_templates WHERE name = 'Gasometría arterial');
+
+NOTIFY pgrst, 'reload schema';

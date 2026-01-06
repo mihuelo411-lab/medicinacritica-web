@@ -1,0 +1,106 @@
+MANUAL DE USUARIO – APLICACIÓN UCI MANAGEMENT
+============================================
+
+1. Introducción
+---------------
+La aplicación UCI Management digitaliza la admisión, monitoreo y egreso de pacientes críticos. Integra un motor local (Drift) sincronizado con Supabase, ofrece formularios clínicos completos y genera reportes/archivos PDF. Este manual resume el flujo recomendado para médicos, residentes y administradores.
+
+2. Roles y permisos
+-------------------
+- **Administrador**: puede aprobar usuarios, acceder al panel administrativo, editar plantillas y gestionar reportes.
+- **Médico asistente**: registra ingresos, evoluciones, procedimientos e indicaciones; puede firmar PDFs.
+- **Residente**: ingresa datos clínicos diarios y procedimientos; ciertas acciones (p. ej. notas finales) pueden requerir revisión.
+Todos los perfiles se almacenan en `public.profiles` y pasan por un flujo de aprobación.
+
+3. Acceso y autenticación
+-------------------------
+1. **Inicio de sesión**: use correo y contraseña. La primera vez se debe registrar. Si es el primer usuario del sistema, el modo “bootstrap” crea al administrador maestro.
+2. **Confirmación de correo**: el usuario debe confirmar su email; de lo contrario verá la pantalla “Confirma tu correo”.
+3. **Aprobación**: tras confirmar, permanece en “pendiente de aprobación” hasta que un admin lo habilite.
+4. **Cierre por inactividad**: si pasa 15 minutos sin interacción, la sesión se cierra automáticamente y al volver al login verá un aviso.
+
+4. Panel principal – Monitor UCI
+--------------------------------
+Después de autenticarse, se muestra la pantalla “Monitor UCI”. Características clave:
+- **Ocupación de camas**: cada cama muestra nombre del paciente, estado crítico (SOFA), VM activa, uso de vasoactivos y accesos rápidos.
+- **Atajos principales** al tocar una cama:
+  * Ver historial clínico completo.
+  * Abrir evoluciones diarias.
+  * Registrar indicaciones o procedimientos.
+  * Generar epicrisis si el paciente será egresado.
+- **Barra superior**:
+  * Botón para crear procedimientos externos (interconsultas).
+  * Cambio de tema claro/oscuro.
+  * Acceso al panel administrativo (si tiene permisos).
+  * Botón de cierre de sesión.
+- **Sincronización**: al cargar el monitor sincroniza primero contra Supabase y luego actualiza la base local.
+
+5. Gestión de pacientes
+-----------------------
+5.1 **Admisión**
+- Menú: desde la pantalla principal, use el botón “+” (o el listado de pacientes) para abrir `AdmissionScreen`.
+- Secciones del formulario: datos demográficos, antecedentes, diagnóstico de ingreso, signos vitales, resumen del caso y plan.
+- **Scores**: el formulario incluye calculadoras SOFA, APACHE II y NUTRIC. Al guardarse, los valores se almacenan con la admisión y se muestran en PDFs/reporte.
+- **Sincronización**: al guardar la admisión, se escribe en la base local y se envía a Supabase (tabla `admissions`).
+
+5.2 **Evoluciones diarias**
+- Acceso: desde el monitor, historial clínico o la ronda médica.
+- Componentes:
+  * Diagnóstico y guardia actual.
+  * Signos vitales, ventilador (modo, parámetros, mecánica) y cálculo automático de Pa/Fi y PAM.
+  * Sección SOAP con sistemas (neuro, hemodinámico, infeccioso, diuresis, balance, etc.).
+  * **Scores pronósticos**: SOFA, APACHE II y NUTRIC recalculables en cada evolución.
+  * Registro de procedimientos y notas (se integra con `procedure_selector`).
+- Guardado: crea un registro en `evolutions` y sincroniza con Supabase. También cuenta días en VM y permite generar un PDF.
+
+5.3 **Historia clínica y egreso**
+- `ClinicalHistoryScreen` muestra todas las evoluciones, indicaciones, epicrisis y adjuntos.
+- `EpicrisisScreen` permite rellenar resumen de egreso reutilizando datos de la última evolución.
+- `IndicationsScreen` centraliza hojas de indicaciones y genera PDF.
+
+6. Módulo de procedimientos
+---------------------------
+- **Procedimientos internos**: se agregan desde la evolución o el monitor; guardan asistente, residente, modo, notas y se serializan como texto para reportes.
+- **Procedimientos externos/interconsultas**: botón “Procedimiento externo” en el monitor abre un formulario específico para casos fuera de la UCI.
+- **Reportes mensuales**: disponible desde el panel administrativo; genera un CSV y carga archivos al bucket `reports` en Supabase.
+
+7. Exámenes auxiliares
+----------------------
+- `ExamTemplateManagementScreen` (sólo admins) permite crear plantillas (JSON) para labs o imágenes.
+- `ExamResultsScreen` lista los resultados asociados a una admisión y permite registrar nuevos valores usando las plantillas.
+- Se aplican políticas RLS en `exam_templates` y `exam_results` para que cualquier usuario autenticado los visualice y edite.
+
+8. Panel administrativo
+-----------------------
+Disponible para administradores desde el monitor:
+- Aprobación y rol de usuarios pendientes.
+- Gestión de plantillas de exámenes.
+- Consulta de reportes mensuales y descargas del bucket `reports`.
+- Ajustes rápidos (p. ej. recalcular sincronizaciones o revisar logs).
+
+9. Otros módulos relevantes
+---------------------------
+- **Ronda médica**: `WardRoundScreen` muestra tendencias (gráficas) de indicadores por paciente y resume evolución/plan.
+- **Nutrición**: módulo específico para cálculos y plan nutricional diario.
+- **PDF Generators**: todas las principales pantallas (admisión, evolución, indicaciones, epicrisis) tienen opción “Generar/Imprimir” que usa los generadores ubicados en `lib/features/.../pdf/`.
+- **Examen físico automático**: la sección ventilatoria puede autocompletar el examen respiratorio según parámetros ingresados.
+
+10. Prácticas recomendadas
+--------------------------
+- Sincronice con frecuencia: al abrir el monitor se ejecuta automáticamente, pero puede forzarse desde el menú si nota discrepancias.
+- Aproveche los cálculos automáticos (PaFi, PAM, SOFA/APACHE) para mantener consistencia y reducir errores manuales.
+- Antes de generar PDFs asegúrese de completar autor/rol, ya que estos datos se imprimen en los documentos.
+- Si un usuario olvida cerrar sesión, el sistema lo hará por inactividad; aun así es buena práctica tocar el ícono de “logout” al terminar el turno.
+
+11. Resolución de problemas comunes
+-----------------------------------
+- **No puedo iniciar sesión**: Verifique que su correo esté confirmado y que un administrador lo haya aprobado.
+- **Pantalla en blanco al abrir la web**: asegúrese de que el último deploy incluyó `./flutterw build web --base-href /medicinacritica-web/ -o docs` y que `docs/.nojekyll` sigue presente.
+- **Google OAuth**: el botón sólo aparece si `enableGoogleOAuth` está en `true` y el proveedor está activo en Supabase; de lo contrario use correo/contraseña.
+- **Datos desactualizados**: toque el botón de refresco en el monitor (o reinicie la app) para disparar la sincronización completa con Supabase.
+
+12. Contacto y mantenimiento
+----------------------------
+- Use el repositorio `mihuelo411-lab/medicinacritica-web` para registrar issues o solicitudes de mejora.
+- Documente cambios relevantes en `README.md` para mantener el historial del proceso (instrucciones de despliegue, autenticación, etc.).
+- Antes de cada release web recuerde correr pruebas básicas (`./flutterw analyze`, builds locales) y verificar que los artefactos en `docs/` se actualicen correctamente.

@@ -1,0 +1,29 @@
+# Flutter/Dart
+.dart_tool/
+.packages
+.flutter-plugins
+.flutter-plugins-dependencies
+.metadata
+build/
+coverage/
+
+# IntelliJ & VS Code
+.idea/
+.vscode/
+*.iml
+
+# Platform specifics
+android/
+ios/
+linux/
+macos/
+web/
+windows/
+
+# Generated files
+pubspec.lock
+generated_plugin_registrant.dart
+
+# Misc
+*.log
+.DS_Store

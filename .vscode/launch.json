@@ -1,0 +1,18 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "uci_management (Chrome)",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "debug",
+            "deviceId": "chrome"
+        },
+        {
+            "name": "uci_management (Mobile)",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "debug"
+        }
+    ]
+}

@@ -1,0 +1,440 @@
+<w:t
+<w:t
+<w:tbl
+<w:tblPr
+<w:tblStyle w:val="a"/
+<w:tblpPr w:leftFromText="180" w:rightFromText="180" w:topFromText="180" w:bottomFromText="180" w:vertAnchor="text"/
+<w:tblW w:w="9570" w:type="dxa"/
+<w:tblInd w:w="0" w:type="dxa"/
+<w:tblBorders
+<w:top w:val="single" w:sz="4" w:space="0" w:color="FFFFFF"/
+<w:tblLayout w:type="fixed"/
+<w:tblLook w:val="0400" w:firstRow="0" w:lastRow="0" w:firstColumn="0" w:lastColumn="0" w:noHBand="0" w:noVBand="1"/
+<w:tblGrid
+<w:tr w:rsidR="00521553"
+<w:trPr
+<w:trHeight w:val="398"/
+<w:tblHeader/
+<w:tc
+<w:tcPr
+<w:tcW w:w="3765" w:type="dxa"/
+<w:tcBorders
+<w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/
+<w:t
+<w:t
+<w:tc
+<w:tcPr
+<w:tcW w:w="5805" w:type="dxa"/
+<w:tcBorders
+<w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/
+<w:t xml:space="preserve"
+<w:t
+<w:t
+<w:t
+<w:t
+<w:t
+<w:t
+<w:t
+<w:t xml:space="preserve"
+<w:t xml:space="preserve"
+<w:t xml:space="preserve"
+<w:t xml:space="preserve"
+<w:t xml:space="preserve"
+<w:tr w:rsidR="00521553"
+<w:trPr
+<w:trHeight w:val="236"/
+<w:tblHeader/
+<w:tc
+<w:tcPr
+<w:tcW w:w="3765" w:type="dxa"/
+<w:tcBorders
+<w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/
+<w:t
+<w:tc
+<w:tcPr
+<w:tcW w:w="5805" w:type="dxa"/
+<w:tcBorders
+<w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/
+<w:tr w:rsidR="00521553"
+<w:trPr
+<w:trHeight w:val="236"/
+<w:tblHeader/
+<w:tc
+<w:tcPr
+<w:tcW w:w="3765" w:type="dxa"/
+<w:tcBorders
+<w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/
+<w:t xml:space="preserve"
+<w:tc
+<w:tcPr
+<w:tcW w:w="5805" w:type="dxa"/
+<w:tcBorders
+<w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/
+<w:tr w:rsidR="00521553"
+<w:trPr
+<w:trHeight w:val="420"/
+<w:tblHeader/
+<w:tc
+<w:tcPr
+<w:tcW w:w="2010" w:type="dxa"/
+<w:tcBorders
+<w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/
+<w:t
+<w:tc
+<w:tcPr
+<w:tcW w:w="1755" w:type="dxa"/
+<w:tcBorders
+<w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/
+<w:t
+<w:tc
+<w:tcPr
+<w:tcW w:w="5805" w:type="dxa"/
+<w:tcBorders
+<w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/
+<w:tr w:rsidR="00521553"
+<w:trPr
+<w:trHeight w:val="220"/
+<w:tblHeader/
+<w:tc
+<w:tcPr
+<w:tcW w:w="780" w:type="dxa"/
+<w:tcBorders
+<w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/
+<w:t
+<w:tc
+<w:tcPr
+<w:tcW w:w="1230" w:type="dxa"/
+<w:tcBorders
+<w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/
+<w:t xml:space="preserve"
+<w:t
+<w:tc
+<w:tcPr
+<w:tcW w:w="885" w:type="dxa"/
+<w:tcBorders
+<w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/
+<w:t
+<w:tc
+<w:tcPr
+<w:tcW w:w="870" w:type="dxa"/
+<w:tcBorders
+<w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/
+<w:t xml:space="preserve"
+<w:tc
+<w:tcPr
+<w:tcW w:w="5805" w:type="dxa"/
+<w:tcBorders
+<w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/
+<w:tr w:rsidR="00521553"
+<w:trPr
+<w:trHeight w:val="210"/
+<w:tblHeader/
+<w:tc
+<w:tcPr
+<w:tcW w:w="780" w:type="dxa"/
+<w:tcBorders
+<w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/
+<w:t
+<w:tc
+<w:tcPr
+<w:tcW w:w="1230" w:type="dxa"/
+<w:tcBorders
+<w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/
+<w:t xml:space="preserve"
+<w:t
+<w:tc
+<w:tcPr
+<w:tcW w:w="885" w:type="dxa"/
+<w:tcBorders
+<w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/
+<w:t
+<w:tc
+<w:tcPr
+<w:tcW w:w="870" w:type="dxa"/
+<w:tcBorders
+<w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/
+<w:t
+<w:tc
+<w:tcPr
+<w:tcW w:w="5805" w:type="dxa"/
+<w:tcBorders
+<w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/
+<w:tr w:rsidR="00521553"
+<w:trPr
+<w:trHeight w:val="220"/
+<w:tblHeader/
+<w:tc
+<w:tcPr
+<w:tcW w:w="780" w:type="dxa"/
+<w:tcBorders
+<w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/
+<w:t
+<w:tc
+<w:tcPr
+<w:tcW w:w="1230" w:type="dxa"/
+<w:tcBorders
+<w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/
+<w:t xml:space="preserve"
+<w:t
+<w:tc
+<w:tcPr
+<w:tcW w:w="885" w:type="dxa"/
+<w:tcBorders
+<w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/
+<w:t
+<w:tc
+<w:tcPr
+<w:tcW w:w="870" w:type="dxa"/
+<w:tcBorders
+<w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/
+<w:t
+<w:tc
+<w:tcPr
+<w:tcW w:w="5805" w:type="dxa"/
+<w:tcBorders
+<w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/
+<w:tr w:rsidR="00521553"
+<w:trPr
+<w:trHeight w:val="240"/
+<w:tblHeader/
+<w:tc
+<w:tcPr
+<w:tcW w:w="780" w:type="dxa"/
+<w:tcBorders
+<w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/
+<w:t
+<w:tc
+<w:tcPr
+<w:tcW w:w="1230" w:type="dxa"/
+<w:tcBorders
+<w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/
+<w:t
+<w:tc
+<w:tcPr
+<w:tcW w:w="885" w:type="dxa"/
+<w:tcBorders
+<w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/
+<w:t
+<w:tc
+<w:tcPr
+<w:tcW w:w="870" w:type="dxa"/
+<w:tcBorders
+<w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/
+<w:t
+<w:tc
+<w:tcPr
+<w:tcW w:w="5805" w:type="dxa"/
+<w:tcBorders
+<w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/
+<w:tr w:rsidR="00521553"
+<w:trPr
+<w:trHeight w:val="210"/
+<w:tblHeader/
+<w:tc
+<w:tcPr
+<w:tcW w:w="780" w:type="dxa"/
+<w:tcBorders
+<w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/
+<w:t
+<w:tc
+<w:tcPr
+<w:tcW w:w="1230" w:type="dxa"/
+<w:tcBorders
+<w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/
+<w:t xml:space="preserve"
+<w:t
+<w:tc
+<w:tcPr
+<w:tcW w:w="885" w:type="dxa"/
+<w:tcBorders
+<w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/
+<w:t
+<w:tc
+<w:tcPr
+<w:tcW w:w="870" w:type="dxa"/
+<w:tcBorders
+<w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/
+<w:t
+<w:tc
+<w:tcPr
+<w:tcW w:w="5805" w:type="dxa"/
+<w:tcBorders
+<w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/
+<w:tr w:rsidR="00521553"
+<w:trPr
+<w:trHeight w:val="200"/
+<w:tblHeader/
+<w:tc
+<w:tcPr
+<w:tcW w:w="780" w:type="dxa"/
+<w:tcBorders
+<w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/
+<w:t
+<w:tc
+<w:tcPr
+<w:tcW w:w="1230" w:type="dxa"/
+<w:tcBorders
+<w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/
+<w:t
+<w:tc
+<w:tcPr
+<w:tcW w:w="885" w:type="dxa"/
+<w:tcBorders
+<w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/
+<w:t
+<w:t xml:space="preserve"
+<w:tc
+<w:tcPr
+<w:tcW w:w="870" w:type="dxa"/
+<w:tcBorders
+<w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/
+<w:t
+<w:tc
+<w:tcPr
+<w:tcW w:w="5805" w:type="dxa"/
+<w:tcBorders
+<w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/
+<w:tr w:rsidR="00521553"
+<w:trPr
+<w:trHeight w:val="454"/
+<w:tblHeader/
+<w:tc
+<w:tcPr
+<w:tcW w:w="780" w:type="dxa"/
+<w:tcBorders
+<w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/
+<w:t
+<w:tc
+<w:tcPr
+<w:tcW w:w="1230" w:type="dxa"/
+<w:tcBorders
+<w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/
+<w:t
+<w:tc
+<w:tcPr
+<w:tcW w:w="1755" w:type="dxa"/
+<w:tcBorders
+<w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/
+<w:tc
+<w:tcPr
+<w:tcW w:w="5805" w:type="dxa"/
+<w:tcBorders
+<w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/
+<w:tr w:rsidR="00521553"
+<w:trPr
+<w:trHeight w:val="395"/
+<w:tc
+<w:tcPr
+<w:tcW w:w="480" w:type="dxa"/
+<w:tcBorders
+<w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/
+<w:t
+<w:tc
+<w:tcPr
+<w:tcW w:w="9090" w:type="dxa"/
+<w:tcBorders
+<w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/
+<w:t xml:space="preserve"
+<w:t
+<w:t xml:space="preserve"
+<w:tr w:rsidR="00521553"
+<w:trPr
+<w:trHeight w:val="1800"/
+<w:tc
+<w:tcPr
+<w:tcW w:w="480" w:type="dxa"/
+<w:tcBorders
+<w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/
+<w:t
+<w:tc
+<w:tcPr
+<w:tcW w:w="9090" w:type="dxa"/
+<w:tcBorders
+<w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/
+<w:t xml:space="preserve"
+<w:t xml:space="preserve"
+<w:t
+<w:t xml:space="preserve"
+<w:t
+<w:t xml:space="preserve"
+<w:t
+<w:t xml:space="preserve"
+<w:t
+<w:t xml:space="preserve"
+<w:t
+<w:t
+<w:t xml:space="preserve"
+<w:t
+<w:t xml:space="preserve"
+<w:t
+<w:t
+<w:t
+<w:t
+<w:t xml:space="preserve"
+<w:t xml:space="preserve"
+<w:t
+<w:t xml:space="preserve"
+<w:t
+<w:t xml:space="preserve"
+<w:t
+<w:t xml:space="preserve"
+<w:t
+<w:t xml:space="preserve"
+<w:t
+<w:t xml:space="preserve"
+<w:t
+<w:t xml:space="preserve"
+<w:t
+<w:t xml:space="preserve"
+<w:t
+<w:t xml:space="preserve"
+<w:t xml:space="preserve"
+<w:t xml:space="preserve"
+<w:t xml:space="preserve"
+<w:t xml:space="preserve"
+<w:t
+<w:t xml:space="preserve"
+<w:t
+<w:t xml:space="preserve"
+<w:t
+<w:t xml:space="preserve"
+<w:tr w:rsidR="00521553"
+<w:trPr
+<w:trHeight w:val="1110"/
+<w:tc
+<w:tcPr
+<w:tcW w:w="480" w:type="dxa"/
+<w:tcBorders
+<w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/
+<w:t
+<w:tc
+<w:tcPr
+<w:tcW w:w="9090" w:type="dxa"/
+<w:tcBorders
+<w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/
+<w:t xml:space="preserve"
+<w:t
+<w:t xml:space="preserve"
+<w:t
+<w:t xml:space="preserve"
+<w:tr w:rsidR="00521553"
+<w:trPr
+<w:trHeight w:val="360"/
+<w:tc
+<w:tcPr
+<w:tcW w:w="480" w:type="dxa"/
+<w:tcBorders
+<w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/
+<w:t
+<w:tc
+<w:tcPr
+<w:tcW w:w="9090" w:type="dxa"/
+<w:tcBorders
+<w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/
+<w:t
+<w:t
+<w:t xml:space="preserve"
+<w:t
+<w:t xml:space="preserve"
+<w:t xml:space="preserve"
+<w:t
