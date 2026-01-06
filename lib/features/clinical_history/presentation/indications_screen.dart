@@ -11,9 +11,199 @@ import '../../../../core/services/supabase_service.dart';
 import 'pdf/indications_pdf_generator.dart';
 import '../../auth/domain/current_user.dart';
 
-class IndicationsScreen extends StatelessWidget {
+class IndicationsScreen extends StatefulWidget {
   final ActiveAdmission activeAdmission;
   const IndicationsScreen({super.key, required this.activeAdmission});
+
+  @override
+  State<IndicationsScreen> createState() => _IndicationsScreenState();
+}
+
+class _IndicationsScreenState extends State<IndicationsScreen> {
+  bool _loading = true;
+  List<_StoredIndicationSheet> _history = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadHistory();
+  }
+
+  Future<void> _loadHistory() async {
+    setState(() => _loading = true);
+    final admissionId = widget.activeAdmission.admission.id;
+    final rows = await (appDatabase.select(appDatabase.indicationSheets)
+          ..where((tbl) => tbl.admissionId.equals(admissionId))
+          ..orderBy([(tbl) => drift.OrderingTerm.desc(tbl.createdAt)]))
+        .get();
+    final parsed = <_StoredIndicationSheet>[];
+    for (final sheet in rows) {
+      try {
+        final decoded = jsonDecode(sheet.payload);
+        if (decoded is Map<String, dynamic>) {
+          parsed.add(
+            _StoredIndicationSheet(
+              id: sheet.id,
+              createdAt: sheet.createdAt,
+              payload: Map<String, dynamic>.from(decoded),
+            ),
+          );
+        }
+      } catch (_) {
+        continue;
+      }
+    }
+    if (!mounted) return;
+    setState(() {
+      _history = parsed;
+      _loading = false;
+    });
+  }
+
+  Future<void> _openEditor() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => IndicationsEditorScreen(activeAdmission: widget.activeAdmission),
+      ),
+    );
+    if (!mounted) return;
+    await _loadHistory();
+  }
+
+  Future<void> _reprintSheet(_StoredIndicationSheet sheet) async {
+    try {
+      final payload = sheet.payload;
+      final indications = _normalizeIndicationsList(payload['indicaciones']);
+      await IndicationsPdfGenerator.generateAndPrint(
+        patient: widget.activeAdmission.patient,
+        admission: widget.activeAdmission.admission,
+        sheetNumber: payload['hoja']?.toString() ?? sheet.id.toString(),
+        unit: payload['unidad']?.toString() ?? 'Unidad de Cuidados Intensivos',
+        expediente: payload['expediente']?.toString() ?? widget.activeAdmission.patient.hc,
+        service: payload['servicio']?.toString() ?? 'UCI',
+        date: payload['fecha']?.toString() ??
+            DateFormat('dd/MM/yyyy').format(sheet.createdAt),
+        time: payload['hora']?.toString() ??
+            DateFormat('HH:mm').format(sheet.createdAt),
+        gender: payload['genero']?.toString() ?? widget.activeAdmission.patient.sex,
+        weight: payload['peso']?.toString() ?? '',
+        height: payload['talla']?.toString() ?? '',
+        physician: payload['medico']?.toString() ?? 'Médico tratante',
+        diagnosis: payload['diagnosticos']?.toString() ?? '',
+        indications: indications,
+        comment: payload['comentarioGeneral']?.toString() ?? '',
+        signatures: _normalizeSignatures(payload['firmantes']),
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Hoja ${payload['hoja'] ?? sheet.id} enviada a impresión')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('No se pudo reimprimir la hoja: $e')),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bedLabel = widget.activeAdmission.admission.bedNumber != null
+        ? 'Cama ${widget.activeAdmission.admission.bedNumber}'
+        : 'Sin cama asignada';
+    return Scaffold(
+      appBar: AppBar(
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Historial de indicaciones'),
+            Text(
+              '$bedLabel • ${widget.activeAdmission.patient.name}',
+              style: const TextStyle(fontSize: 12),
+            ),
+          ],
+        ),
+        actions: [
+          IconButton(
+            tooltip: 'Actualizar',
+            onPressed: _loading ? null : _loadHistory,
+            icon: const Icon(Icons.refresh),
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _openEditor,
+        icon: const Icon(Icons.add),
+        label: const Text('Nueva indicación'),
+      ),
+      body: _buildHistoryBody(),
+    );
+  }
+
+  Widget _buildHistoryBody() {
+    if (_loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    return RefreshIndicator(
+      onRefresh: _loadHistory,
+      child: _history.isEmpty
+          ? ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(24),
+              children: const [
+                Icon(Icons.receipt_long, size: 48, color: Colors.grey),
+                SizedBox(height: 12),
+                Text(
+                  'Aún no registras hojas de indicaciones para este paciente.',
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            )
+          : ListView.separated(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(16),
+              itemCount: _history.length,
+              separatorBuilder: (context, _) => const SizedBox(height: 12),
+              itemBuilder: (context, index) {
+                final sheet = _history[index];
+                final diag = (sheet.payload['diagnosticos']?.toString() ?? '').trim();
+                final indications = _normalizeIndicationsList(sheet.payload['indicaciones']);
+                final sheetNumber = sheet.payload['hoja']?.toString() ?? sheet.id.toString();
+                final createdAt = DateFormat('dd/MM/yyyy HH:mm').format(sheet.createdAt);
+                return Card(
+                  child: ListTile(
+                    title: Text('Hoja $sheetNumber'),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(createdAt, style: const TextStyle(fontSize: 12)),
+                        Text('${indications.length} indicaciones registradas'),
+                        if (diag.isNotEmpty)
+                          Text(
+                            diag.length > 140 ? '${diag.substring(0, 140)}…' : diag,
+                            style: const TextStyle(fontSize: 12, color: Colors.grey),
+                          ),
+                      ],
+                    ),
+                    trailing: TextButton.icon(
+                      onPressed: () => _reprintSheet(sheet),
+                      icon: const Icon(Icons.print),
+                      label: const Text('Reimprimir'),
+                    ),
+                  ),
+                );
+              },
+            ),
+    );
+  }
+}
+
+class IndicationsEditorScreen extends StatelessWidget {
+  final ActiveAdmission activeAdmission;
+  const IndicationsEditorScreen({super.key, required this.activeAdmission});
 
   @override
   Widget build(BuildContext context) {
@@ -26,7 +216,7 @@ class IndicationsScreen extends StatelessWidget {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Hoja de indicaciones'),
+            const Text('Nueva hoja de indicaciones'),
             Text(
               '$bedLabel • ${activeAdmission.patient.name}',
               style: const TextStyle(fontSize: 12),
@@ -112,8 +302,6 @@ class _IndicationsFormState extends State<IndicationsForm> {
   final Cie10Service _cie10Service = Cie10Service();
   String? _admissionDiagnosisSnapshot;
   List<String> _suggestionPool = [];
-  List<_StoredIndicationSheet> _historySheets = [];
-  bool _historyLoading = false;
 
   Map<String, dynamic> _buildSignersPayload() {
     final profile = CurrentUserStore.profile;
@@ -164,7 +352,6 @@ class _IndicationsFormState extends State<IndicationsForm> {
     _indicationRows.add(_IndicationRow());
     _prefillLatestSheet();
     _loadIndicationSuggestions();
-    _loadHistory();
   }
 
   Future<void> _prefillDiagnosis() async {
@@ -242,39 +429,6 @@ class _IndicationsFormState extends State<IndicationsForm> {
       if (diag is String && diag.isNotEmpty) {
         _diagnosisController.text = diag;
       }
-    });
-  }
-
-  Future<void> _loadHistory() async {
-    setState(() {
-      _historyLoading = true;
-    });
-    final admissionId = widget.activeAdmission.admission.id;
-    final rows = await (appDatabase.select(appDatabase.indicationSheets)
-          ..where((tbl) => tbl.admissionId.equals(admissionId))
-          ..orderBy([(tbl) => drift.OrderingTerm.desc(tbl.createdAt)]))
-        .get();
-    final parsed = <_StoredIndicationSheet>[];
-    for (final sheet in rows) {
-      try {
-        final decoded = jsonDecode(sheet.payload);
-        if (decoded is Map<String, dynamic>) {
-          parsed.add(
-            _StoredIndicationSheet(
-              id: sheet.id,
-              createdAt: sheet.createdAt,
-              payload: Map<String, dynamic>.from(decoded),
-            ),
-          );
-        }
-      } catch (_) {
-        continue;
-      }
-    }
-    if (!mounted) return;
-    setState(() {
-      _historySheets = parsed;
-      _historyLoading = false;
     });
   }
 
@@ -420,42 +574,6 @@ class _IndicationsFormState extends State<IndicationsForm> {
     };
   }
 
-  Future<void> _reprintStoredSheet(_StoredIndicationSheet sheet) async {
-    try {
-      final payload = sheet.payload;
-      final indications = _normalizeIndicationsList(payload['indicaciones']);
-      await IndicationsPdfGenerator.generateAndPrint(
-        patient: widget.activeAdmission.patient,
-        admission: widget.activeAdmission.admission,
-        sheetNumber: payload['hoja']?.toString() ?? sheet.id.toString(),
-        unit: payload['unidad']?.toString() ?? 'Unidad de Cuidados Intensivos',
-        expediente: payload['expediente']?.toString() ?? widget.activeAdmission.patient.hc,
-        service: payload['servicio']?.toString() ?? 'UCI',
-        date: payload['fecha']?.toString() ?? DateFormat('dd/MM/yyyy').format(sheet.createdAt),
-        time: payload['hora']?.toString() ?? DateFormat('HH:mm').format(sheet.createdAt),
-        gender: payload['genero']?.toString() ?? widget.activeAdmission.patient.sex,
-        weight: payload['peso']?.toString() ?? '',
-        height: payload['talla']?.toString() ?? '',
-        physician: payload['medico']?.toString() ?? 'Médico tratante',
-        diagnosis: payload['diagnosticos']?.toString() ?? '',
-        indications: indications,
-        comment: payload['comentarioGeneral']?.toString() ?? '',
-        signatures: _normalizeSignatures(payload['firmantes']),
-      );
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Hoja ${payload['hoja'] ?? sheet.id} enviada a impresión')),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('No se pudo reimprimir la hoja: $e')),
-        );
-      }
-    }
-  }
-
   Future<void> _persistDiagnosis(String text) async {
     if (text.isEmpty) return;
     final admissionId = widget.activeAdmission.admission.id;
@@ -480,7 +598,6 @@ class _IndicationsFormState extends State<IndicationsForm> {
     );
     try {
       await appDatabase.into(appDatabase.indicationSheets).insert(companion);
-      await _loadHistory();
     } catch (e) {
       debugPrint('No se pudo guardar la hoja de indicaciones: $e');
     }
@@ -494,8 +611,6 @@ class _IndicationsFormState extends State<IndicationsForm> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildHistoryCard(context),
-          const SizedBox(height: 12),
           _buildHeaderCard(context),
           const SizedBox(height: 12),
           _buildDiagnosisCard(context),
@@ -504,69 +619,6 @@ class _IndicationsFormState extends State<IndicationsForm> {
           const SizedBox(height: 12),
           _buildSignatureCard(context),
         ],
-      ),
-    );
-  }
-
-  Widget _buildHistoryCard(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('Historial de indicaciones', style: Theme.of(context).textTheme.titleMedium),
-                IconButton(
-                  tooltip: 'Actualizar historial',
-                  onPressed: _historyLoading ? null : () => _loadHistory(),
-                  icon: const Icon(Icons.refresh),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            if (_historyLoading)
-              const LinearProgressIndicator()
-            else if (_historySheets.isEmpty)
-              const Text('Aún no hay hojas de indicaciones registradas para este paciente.')
-            else
-              ListView.separated(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: _historySheets.length,
-                separatorBuilder: (context, _) => const Divider(),
-                itemBuilder: (context, index) {
-                  final sheet = _historySheets[index];
-                  final diag = (sheet.payload['diagnosticos']?.toString() ?? '').trim();
-                  final indications = _normalizeIndicationsList(sheet.payload['indicaciones']);
-                  final sheetNumber = sheet.payload['hoja']?.toString() ?? sheet.id.toString();
-                  final createdAt = DateFormat('dd/MM/yyyy HH:mm').format(sheet.createdAt);
-                  return ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: Text('Hoja $sheetNumber • $createdAt'),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('${indications.length} indicaciones registradas'),
-                        if (diag.isNotEmpty)
-                          Text(
-                            diag.length > 120 ? '${diag.substring(0, 120)}…' : diag,
-                            style: const TextStyle(fontSize: 12, color: Colors.grey),
-                          ),
-                      ],
-                    ),
-                    trailing: TextButton.icon(
-                      onPressed: () => _reprintStoredSheet(sheet),
-                      icon: const Icon(Icons.print),
-                      label: const Text('Reimprimir'),
-                    ),
-                  );
-                },
-              ),
-          ],
-        ),
       ),
     );
   }
