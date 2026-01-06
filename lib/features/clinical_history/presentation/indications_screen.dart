@@ -112,6 +112,8 @@ class _IndicationsFormState extends State<IndicationsForm> {
   final Cie10Service _cie10Service = Cie10Service();
   String? _admissionDiagnosisSnapshot;
   List<String> _suggestionPool = [];
+  List<_StoredIndicationSheet> _historySheets = [];
+  bool _historyLoading = false;
 
   Map<String, dynamic> _buildSignersPayload() {
     final profile = CurrentUserStore.profile;
@@ -162,6 +164,7 @@ class _IndicationsFormState extends State<IndicationsForm> {
     _indicationRows.add(_IndicationRow());
     _prefillLatestSheet();
     _loadIndicationSuggestions();
+    _loadHistory();
   }
 
   Future<void> _prefillDiagnosis() async {
@@ -239,6 +242,39 @@ class _IndicationsFormState extends State<IndicationsForm> {
       if (diag is String && diag.isNotEmpty) {
         _diagnosisController.text = diag;
       }
+    });
+  }
+
+  Future<void> _loadHistory() async {
+    setState(() {
+      _historyLoading = true;
+    });
+    final admissionId = widget.activeAdmission.admission.id;
+    final rows = await (appDatabase.select(appDatabase.indicationSheets)
+          ..where((tbl) => tbl.admissionId.equals(admissionId))
+          ..orderBy([(tbl) => drift.OrderingTerm.desc(tbl.createdAt)]))
+        .get();
+    final parsed = <_StoredIndicationSheet>[];
+    for (final sheet in rows) {
+      try {
+        final decoded = jsonDecode(sheet.payload);
+        if (decoded is Map<String, dynamic>) {
+          parsed.add(
+            _StoredIndicationSheet(
+              id: sheet.id,
+              createdAt: sheet.createdAt,
+              payload: Map<String, dynamic>.from(decoded),
+            ),
+          );
+        }
+      } catch (_) {
+        continue;
+      }
+    }
+    if (!mounted) return;
+    setState(() {
+      _historySheets = parsed;
+      _historyLoading = false;
     });
   }
 
@@ -334,9 +370,7 @@ class _IndicationsFormState extends State<IndicationsForm> {
 
   Future<void> printSheet(BuildContext context) async {
     final payload = _collectSheetData();
-    final indicationsData = (payload['indicaciones'] as List<Map<String, String>>)
-        .where((item) => item['texto']?.trim().isNotEmpty == true)
-        .toList();
+    final indicationsData = _normalizeIndicationsList(payload['indicaciones']);
     final diagnosis = payload['diagnosticos'] as String;
     final profile = CurrentUserStore.profile;
     final physicianName = profile?.fullName?.isNotEmpty == true
@@ -386,6 +420,42 @@ class _IndicationsFormState extends State<IndicationsForm> {
     };
   }
 
+  Future<void> _reprintStoredSheet(_StoredIndicationSheet sheet) async {
+    try {
+      final payload = sheet.payload;
+      final indications = _normalizeIndicationsList(payload['indicaciones']);
+      await IndicationsPdfGenerator.generateAndPrint(
+        patient: widget.activeAdmission.patient,
+        admission: widget.activeAdmission.admission,
+        sheetNumber: payload['hoja']?.toString() ?? sheet.id.toString(),
+        unit: payload['unidad']?.toString() ?? 'Unidad de Cuidados Intensivos',
+        expediente: payload['expediente']?.toString() ?? widget.activeAdmission.patient.hc,
+        service: payload['servicio']?.toString() ?? 'UCI',
+        date: payload['fecha']?.toString() ?? DateFormat('dd/MM/yyyy').format(sheet.createdAt),
+        time: payload['hora']?.toString() ?? DateFormat('HH:mm').format(sheet.createdAt),
+        gender: payload['genero']?.toString() ?? widget.activeAdmission.patient.sex,
+        weight: payload['peso']?.toString() ?? '',
+        height: payload['talla']?.toString() ?? '',
+        physician: payload['medico']?.toString() ?? 'Médico tratante',
+        diagnosis: payload['diagnosticos']?.toString() ?? '',
+        indications: indications,
+        comment: payload['comentarioGeneral']?.toString() ?? '',
+        signatures: _normalizeSignatures(payload['firmantes']),
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Hoja ${payload['hoja'] ?? sheet.id} enviada a impresión')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('No se pudo reimprimir la hoja: $e')),
+        );
+      }
+    }
+  }
+
   Future<void> _persistDiagnosis(String text) async {
     if (text.isEmpty) return;
     final admissionId = widget.activeAdmission.admission.id;
@@ -410,6 +480,7 @@ class _IndicationsFormState extends State<IndicationsForm> {
     );
     try {
       await appDatabase.into(appDatabase.indicationSheets).insert(companion);
+      await _loadHistory();
     } catch (e) {
       debugPrint('No se pudo guardar la hoja de indicaciones: $e');
     }
@@ -423,6 +494,8 @@ class _IndicationsFormState extends State<IndicationsForm> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          _buildHistoryCard(context),
+          const SizedBox(height: 12),
           _buildHeaderCard(context),
           const SizedBox(height: 12),
           _buildDiagnosisCard(context),
@@ -431,6 +504,69 @@ class _IndicationsFormState extends State<IndicationsForm> {
           const SizedBox(height: 12),
           _buildSignatureCard(context),
         ],
+      ),
+    );
+  }
+
+  Widget _buildHistoryCard(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Historial de indicaciones', style: Theme.of(context).textTheme.titleMedium),
+                IconButton(
+                  tooltip: 'Actualizar historial',
+                  onPressed: _historyLoading ? null : () => _loadHistory(),
+                  icon: const Icon(Icons.refresh),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            if (_historyLoading)
+              const LinearProgressIndicator()
+            else if (_historySheets.isEmpty)
+              const Text('Aún no hay hojas de indicaciones registradas para este paciente.')
+            else
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: _historySheets.length,
+                separatorBuilder: (context, _) => const Divider(),
+                itemBuilder: (context, index) {
+                  final sheet = _historySheets[index];
+                  final diag = (sheet.payload['diagnosticos']?.toString() ?? '').trim();
+                  final indications = _normalizeIndicationsList(sheet.payload['indicaciones']);
+                  final sheetNumber = sheet.payload['hoja']?.toString() ?? sheet.id.toString();
+                  final createdAt = DateFormat('dd/MM/yyyy HH:mm').format(sheet.createdAt);
+                  return ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text('Hoja $sheetNumber • $createdAt'),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('${indications.length} indicaciones registradas'),
+                        if (diag.isNotEmpty)
+                          Text(
+                            diag.length > 120 ? '${diag.substring(0, 120)}…' : diag,
+                            style: const TextStyle(fontSize: 12, color: Colors.grey),
+                          ),
+                      ],
+                    ),
+                    trailing: TextButton.icon(
+                      onPressed: () => _reprintStoredSheet(sheet),
+                      icon: const Icon(Icons.print),
+                      label: const Text('Reimprimir'),
+                    ),
+                  );
+                },
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -704,6 +840,50 @@ class _IndicationRow {
     textCtl.dispose();
     focusNode.dispose();
   }
+}
+
+class _StoredIndicationSheet {
+  final int id;
+  final DateTime createdAt;
+  final Map<String, dynamic> payload;
+  const _StoredIndicationSheet({
+    required this.id,
+    required this.createdAt,
+    required this.payload,
+  });
+}
+
+List<Map<String, String>> _normalizeIndicationsList(dynamic rawList) {
+  final result = <Map<String, String>>[];
+  if (rawList is List) {
+    var order = 1;
+    for (final entry in rawList) {
+      String text = '';
+      String number = order.toString();
+      if (entry is Map) {
+        if (entry['texto'] != null) {
+          text = entry['texto'].toString();
+        }
+        if (entry['numero'] != null) {
+          number = entry['numero'].toString();
+        }
+      } else if (entry is String) {
+        text = entry;
+      }
+      if (text.trim().isEmpty) continue;
+      result.add({'numero': number, 'texto': text.trim()});
+      order++;
+    }
+  }
+  return result;
+}
+
+Map<String, dynamic>? _normalizeSignatures(dynamic raw) {
+  if (raw is Map<String, dynamic>) return raw;
+  if (raw is Map) {
+    return raw.map((key, value) => MapEntry(key.toString(), value));
+  }
+  return null;
 }
   Map<String, String> _safeParse(String? raw) {
     if (raw == null || raw.isEmpty) return {};
