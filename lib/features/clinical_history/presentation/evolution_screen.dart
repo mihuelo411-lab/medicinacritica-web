@@ -274,10 +274,11 @@ class _EvolutionScreenState extends State<EvolutionScreen> {
   Future<void> _loadPatientData() async {
     // 1. Find Active Admission for Bed
     final activeAdmissions = await (appDatabase.select(appDatabase.admissions)
-      ..where((t) => t.bedNumber.equals(widget.bedNumber))
-      ..where((t) => t.dischargedAt.isNull())
-      ..limit(1))
-      .get();
+          ..where((t) => t.bedNumber.equals(widget.bedNumber))
+          ..where((t) => t.dischargedAt.isNull())
+          ..where((t) => t.status.equals('activo'))
+          ..limit(1))
+        .get();
 
     if (activeAdmissions.isEmpty) {
       if (mounted) {

@@ -475,6 +475,20 @@ class SupabaseService {
         'p_apache_score': apacheScore,
       });
       
+      final admissionId = response['admission_id'] as int?;
+      final rawStatus = response['status']?.toString().toUpperCase();
+      final bool isReadmission = rawStatus == 'REINGRESO';
+      if (admissionId != null) {
+        try {
+          await client.from('admissions').update({
+            'status': 'activo',
+            'is_readmission': isReadmission,
+          }).eq('id', admissionId);
+        } catch (statusError) {
+          debugPrint('Error tagging admission status fields: $statusError');
+        }
+      }
+      
       return Map<String, dynamic>.from(response);
     } catch (e) {
       debugPrint('Error in registerPatientAdmission: $e');
@@ -561,7 +575,8 @@ class SupabaseService {
           .from('admissions')
           .select('*, patients(*)') // Join with patients
           .not('bed_number', 'is', null) // Has bed
-          .filter('discharged_at', 'is', null); // Not discharged
+          .filter('discharged_at', 'is', null) // Not discharged
+          .eq('status', 'activo'); // Only active patients
       
       return List<Map<String, dynamic>>.from(response);
     } catch (e) {
@@ -576,7 +591,7 @@ class SupabaseService {
       final formattedIds = '(${ids.join(',')})';
       final response = await client
           .from('admissions')
-          .select('id, bed_number, discharged_at')
+          .select('id, bed_number, discharged_at, status, is_readmission')
           .filter('id', 'in', formattedIds);
       return List<Map<String, dynamic>>.from(response);
     } catch (e) {
@@ -593,6 +608,7 @@ class SupabaseService {
     final payload = <String, dynamic>{
       'discharged_at': (dischargedAt ?? DateTime.now()).toIso8601String(),
       'is_synced': true,
+      'status': 'alta',
     };
     if (releaseBed) payload['bed_number'] = null;
     try {
@@ -772,6 +788,8 @@ class SupabaseService {
       'bed_number': a.bedNumber,
       'discharged_at': a.dischargedAt?.toIso8601String(),
       'uci_priority': a.uciPriority,
+      'status': a.status ?? 'activo',
+      'is_readmission': a.isReadmission ?? false,
       'created_at': a.createdAt.toIso8601String(),
       'is_synced': true,
     }).toList());

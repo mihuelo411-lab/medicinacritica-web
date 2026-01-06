@@ -61,6 +61,8 @@ class Admissions extends Table {
   IntColumn get bedNumber => integer().nullable()();
   DateTimeColumn get dischargedAt => dateTime().nullable()();
   TextColumn get uciPriority => text().nullable()();
+  TextColumn get status => text().withDefault(const Constant('activo'))();
+  BoolColumn get isReadmission => boolean().withDefault(const Constant(false))();
 
   // Audit
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
@@ -191,7 +193,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 16;
+  int get schemaVersion => 17;
 
   @override
   MigrationStrategy get migration {
@@ -259,6 +261,10 @@ class AppDatabase extends _$AppDatabase {
         if (from < 16) {
            await m.createTable(examTemplates);
            await m.createTable(examResults);
+        }
+        if (from < 17) {
+           await m.addColumn(admissions, admissions.status);
+           await m.addColumn(admissions, admissions.isReadmission);
         }
       },
     );

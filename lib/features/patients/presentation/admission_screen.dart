@@ -1172,6 +1172,7 @@ class _AdmissionScreenState extends State<AdmissionScreen> {
       final String amort = extractMort(_apacheController.text) ?? '';
 
       // --- SUPABASE SYNC (Primary) ---
+      bool isReadmissionFlag = false;
       // We assume Supabase is the source of truth for "New vs Readmission" logic via RPC
        try {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Guardando en la nube...'), duration: Duration(seconds: 1)));
@@ -1199,7 +1200,8 @@ class _AdmissionScreenState extends State<AdmissionScreen> {
         
         final admissionId = result['admission_id'] as int;
         setState(() => _localAdmissionId = admissionId);
-        final status = result['status'] as String; // NUEVO or REINGRESO
+        final remoteStatus = (result['status']?.toString().toUpperCase() ?? 'NUEVO');
+        isReadmissionFlag = remoteStatus == 'REINGRESO';
         
         // B. Step 2: Update with Full Clinical Data (Vitals, Plan, etc.)
         await service.updateAdmissionClinicalData(
@@ -1218,11 +1220,11 @@ class _AdmissionScreenState extends State<AdmissionScreen> {
           nutricScore: nutric,
         );
 
-        print('✅ Supabase Sync Success. Status: $status');
+        print('✅ Supabase Sync Success. Status: $remoteStatus');
         
          if (mounted) {
            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('¡Guardado en Nube Exitoso! ($status)'),
+            content: Text('¡Guardado en Nube Exitoso! ($remoteStatus)'),
             backgroundColor: Colors.green,
           ));
         }
@@ -1308,6 +1310,8 @@ class _AdmissionScreenState extends State<AdmissionScreen> {
         apacheMortality: drift.Value(apacheMortality),
         uciPriority: drift.Value(_uciPriorityController.text),
         isSynced: const drift.Value(true), 
+        status: const drift.Value('activo'),
+        isReadmission: drift.Value(isReadmissionFlag),
         
         // Detailed History Fields
         timeOfDisease: drift.Value(_illnessTimeController.text),

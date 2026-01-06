@@ -1139,6 +1139,31 @@ class $AdmissionsTable extends Admissions
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+    'status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('activo'),
+  );
+  static const VerificationMeta _isReadmissionMeta = const VerificationMeta(
+    'isReadmission',
+  );
+  @override
+  late final GeneratedColumn<bool> isReadmission = GeneratedColumn<bool>(
+    'is_readmission',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_readmission" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -1194,6 +1219,8 @@ class $AdmissionsTable extends Admissions
     bedNumber,
     dischargedAt,
     uciPriority,
+    status,
+    isReadmission,
     createdAt,
     isSynced,
   ];
@@ -1393,6 +1420,21 @@ class $AdmissionsTable extends Admissions
         ),
       );
     }
+    if (data.containsKey('status')) {
+      context.handle(
+        _statusMeta,
+        status.isAcceptableOrUnknown(data['status']!, _statusMeta),
+      );
+    }
+    if (data.containsKey('is_readmission')) {
+      context.handle(
+        _isReadmissionMeta,
+        isReadmission.isAcceptableOrUnknown(
+          data['is_readmission']!,
+          _isReadmissionMeta,
+        ),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -1518,6 +1560,14 @@ class $AdmissionsTable extends Admissions
         DriftSqlType.string,
         data['${effectivePrefix}uci_priority'],
       ),
+      status: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}status'],
+      )!,
+      isReadmission: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_readmission'],
+      )!,
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -1562,6 +1612,8 @@ class Admission extends DataClass implements Insertable<Admission> {
   final int? bedNumber;
   final DateTime? dischargedAt;
   final String? uciPriority;
+  final String status;
+  final bool isReadmission;
   final DateTime createdAt;
   final bool isSynced;
   const Admission({
@@ -1591,6 +1643,8 @@ class Admission extends DataClass implements Insertable<Admission> {
     this.bedNumber,
     this.dischargedAt,
     this.uciPriority,
+    required this.status,
+    required this.isReadmission,
     required this.createdAt,
     required this.isSynced,
   });
@@ -1669,6 +1723,8 @@ class Admission extends DataClass implements Insertable<Admission> {
     if (!nullToAbsent || uciPriority != null) {
       map['uci_priority'] = Variable<String>(uciPriority);
     }
+    map['status'] = Variable<String>(status);
+    map['is_readmission'] = Variable<bool>(isReadmission);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['is_synced'] = Variable<bool>(isSynced);
     return map;
@@ -1738,6 +1794,8 @@ class Admission extends DataClass implements Insertable<Admission> {
       uciPriority: uciPriority == null && nullToAbsent
           ? const Value.absent()
           : Value(uciPriority),
+      status: Value(status),
+      isReadmission: Value(isReadmission),
       createdAt: Value(createdAt),
       isSynced: Value(isSynced),
     );
@@ -1775,6 +1833,8 @@ class Admission extends DataClass implements Insertable<Admission> {
       bedNumber: serializer.fromJson<int?>(json['bedNumber']),
       dischargedAt: serializer.fromJson<DateTime?>(json['dischargedAt']),
       uciPriority: serializer.fromJson<String?>(json['uciPriority']),
+      status: serializer.fromJson<String>(json['status']),
+      isReadmission: serializer.fromJson<bool>(json['isReadmission']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       isSynced: serializer.fromJson<bool>(json['isSynced']),
     );
@@ -1809,6 +1869,8 @@ class Admission extends DataClass implements Insertable<Admission> {
       'bedNumber': serializer.toJson<int?>(bedNumber),
       'dischargedAt': serializer.toJson<DateTime?>(dischargedAt),
       'uciPriority': serializer.toJson<String?>(uciPriority),
+      'status': serializer.toJson<String>(status),
+      'isReadmission': serializer.toJson<bool>(isReadmission),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'isSynced': serializer.toJson<bool>(isSynced),
     };
@@ -1841,6 +1903,8 @@ class Admission extends DataClass implements Insertable<Admission> {
     Value<int?> bedNumber = const Value.absent(),
     Value<DateTime?> dischargedAt = const Value.absent(),
     Value<String?> uciPriority = const Value.absent(),
+    String? status,
+    bool? isReadmission,
     DateTime? createdAt,
     bool? isSynced,
   }) => Admission(
@@ -1880,6 +1944,8 @@ class Admission extends DataClass implements Insertable<Admission> {
     bedNumber: bedNumber.present ? bedNumber.value : this.bedNumber,
     dischargedAt: dischargedAt.present ? dischargedAt.value : this.dischargedAt,
     uciPriority: uciPriority.present ? uciPriority.value : this.uciPriority,
+    status: status ?? this.status,
+    isReadmission: isReadmission ?? this.isReadmission,
     createdAt: createdAt ?? this.createdAt,
     isSynced: isSynced ?? this.isSynced,
   );
@@ -1939,6 +2005,10 @@ class Admission extends DataClass implements Insertable<Admission> {
       uciPriority: data.uciPriority.present
           ? data.uciPriority.value
           : this.uciPriority,
+      status: data.status.present ? data.status.value : this.status,
+      isReadmission: data.isReadmission.present
+          ? data.isReadmission.value
+          : this.isReadmission,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       isSynced: data.isSynced.present ? data.isSynced.value : this.isSynced,
     );
@@ -1973,6 +2043,8 @@ class Admission extends DataClass implements Insertable<Admission> {
           ..write('bedNumber: $bedNumber, ')
           ..write('dischargedAt: $dischargedAt, ')
           ..write('uciPriority: $uciPriority, ')
+          ..write('status: $status, ')
+          ..write('isReadmission: $isReadmission, ')
           ..write('createdAt: $createdAt, ')
           ..write('isSynced: $isSynced')
           ..write(')'))
@@ -2007,6 +2079,8 @@ class Admission extends DataClass implements Insertable<Admission> {
     bedNumber,
     dischargedAt,
     uciPriority,
+    status,
+    isReadmission,
     createdAt,
     isSynced,
   ]);
@@ -2040,6 +2114,8 @@ class Admission extends DataClass implements Insertable<Admission> {
           other.bedNumber == this.bedNumber &&
           other.dischargedAt == this.dischargedAt &&
           other.uciPriority == this.uciPriority &&
+          other.status == this.status &&
+          other.isReadmission == this.isReadmission &&
           other.createdAt == this.createdAt &&
           other.isSynced == this.isSynced);
 }
@@ -2071,6 +2147,8 @@ class AdmissionsCompanion extends UpdateCompanion<Admission> {
   final Value<int?> bedNumber;
   final Value<DateTime?> dischargedAt;
   final Value<String?> uciPriority;
+  final Value<String> status;
+  final Value<bool> isReadmission;
   final Value<DateTime> createdAt;
   final Value<bool> isSynced;
   const AdmissionsCompanion({
@@ -2100,6 +2178,8 @@ class AdmissionsCompanion extends UpdateCompanion<Admission> {
     this.bedNumber = const Value.absent(),
     this.dischargedAt = const Value.absent(),
     this.uciPriority = const Value.absent(),
+    this.status = const Value.absent(),
+    this.isReadmission = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.isSynced = const Value.absent(),
   });
@@ -2130,6 +2210,8 @@ class AdmissionsCompanion extends UpdateCompanion<Admission> {
     this.bedNumber = const Value.absent(),
     this.dischargedAt = const Value.absent(),
     this.uciPriority = const Value.absent(),
+    this.status = const Value.absent(),
+    this.isReadmission = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.isSynced = const Value.absent(),
   }) : patientId = Value(patientId),
@@ -2161,6 +2243,8 @@ class AdmissionsCompanion extends UpdateCompanion<Admission> {
     Expression<int>? bedNumber,
     Expression<DateTime>? dischargedAt,
     Expression<String>? uciPriority,
+    Expression<String>? status,
+    Expression<bool>? isReadmission,
     Expression<DateTime>? createdAt,
     Expression<bool>? isSynced,
   }) {
@@ -2191,6 +2275,8 @@ class AdmissionsCompanion extends UpdateCompanion<Admission> {
       if (bedNumber != null) 'bed_number': bedNumber,
       if (dischargedAt != null) 'discharged_at': dischargedAt,
       if (uciPriority != null) 'uci_priority': uciPriority,
+      if (status != null) 'status': status,
+      if (isReadmission != null) 'is_readmission': isReadmission,
       if (createdAt != null) 'created_at': createdAt,
       if (isSynced != null) 'is_synced': isSynced,
     });
@@ -2223,6 +2309,8 @@ class AdmissionsCompanion extends UpdateCompanion<Admission> {
     Value<int?>? bedNumber,
     Value<DateTime?>? dischargedAt,
     Value<String?>? uciPriority,
+    Value<String>? status,
+    Value<bool>? isReadmission,
     Value<DateTime>? createdAt,
     Value<bool>? isSynced,
   }) {
@@ -2253,6 +2341,8 @@ class AdmissionsCompanion extends UpdateCompanion<Admission> {
       bedNumber: bedNumber ?? this.bedNumber,
       dischargedAt: dischargedAt ?? this.dischargedAt,
       uciPriority: uciPriority ?? this.uciPriority,
+      status: status ?? this.status,
+      isReadmission: isReadmission ?? this.isReadmission,
       createdAt: createdAt ?? this.createdAt,
       isSynced: isSynced ?? this.isSynced,
     );
@@ -2339,6 +2429,12 @@ class AdmissionsCompanion extends UpdateCompanion<Admission> {
     if (uciPriority.present) {
       map['uci_priority'] = Variable<String>(uciPriority.value);
     }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (isReadmission.present) {
+      map['is_readmission'] = Variable<bool>(isReadmission.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -2377,6 +2473,8 @@ class AdmissionsCompanion extends UpdateCompanion<Admission> {
           ..write('bedNumber: $bedNumber, ')
           ..write('dischargedAt: $dischargedAt, ')
           ..write('uciPriority: $uciPriority, ')
+          ..write('status: $status, ')
+          ..write('isReadmission: $isReadmission, ')
           ..write('createdAt: $createdAt, ')
           ..write('isSynced: $isSynced')
           ..write(')'))
@@ -7122,6 +7220,8 @@ typedef $$AdmissionsTableCreateCompanionBuilder =
       Value<int?> bedNumber,
       Value<DateTime?> dischargedAt,
       Value<String?> uciPriority,
+      Value<String> status,
+      Value<bool> isReadmission,
       Value<DateTime> createdAt,
       Value<bool> isSynced,
     });
@@ -7153,6 +7253,8 @@ typedef $$AdmissionsTableUpdateCompanionBuilder =
       Value<int?> bedNumber,
       Value<DateTime?> dischargedAt,
       Value<String?> uciPriority,
+      Value<String> status,
+      Value<bool> isReadmission,
       Value<DateTime> createdAt,
       Value<bool> isSynced,
     });
@@ -7425,6 +7527,16 @@ class $$AdmissionsTableFilterComposer
 
   ColumnFilters<String> get uciPriority => $composableBuilder(
     column: $table.uciPriority,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isReadmission => $composableBuilder(
+    column: $table.isReadmission,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -7721,6 +7833,16 @@ class $$AdmissionsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isReadmission => $composableBuilder(
+    column: $table.isReadmission,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -7864,6 +7986,14 @@ class $$AdmissionsTableAnnotationComposer
 
   GeneratedColumn<String> get uciPriority => $composableBuilder(
     column: $table.uciPriority,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<bool> get isReadmission => $composableBuilder(
+    column: $table.isReadmission,
     builder: (column) => column,
   );
 
@@ -8084,6 +8214,8 @@ class $$AdmissionsTableTableManager
                 Value<int?> bedNumber = const Value.absent(),
                 Value<DateTime?> dischargedAt = const Value.absent(),
                 Value<String?> uciPriority = const Value.absent(),
+                Value<String> status = const Value.absent(),
+                Value<bool> isReadmission = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<bool> isSynced = const Value.absent(),
               }) => AdmissionsCompanion(
@@ -8113,6 +8245,8 @@ class $$AdmissionsTableTableManager
                 bedNumber: bedNumber,
                 dischargedAt: dischargedAt,
                 uciPriority: uciPriority,
+                status: status,
+                isReadmission: isReadmission,
                 createdAt: createdAt,
                 isSynced: isSynced,
               ),
@@ -8144,6 +8278,8 @@ class $$AdmissionsTableTableManager
                 Value<int?> bedNumber = const Value.absent(),
                 Value<DateTime?> dischargedAt = const Value.absent(),
                 Value<String?> uciPriority = const Value.absent(),
+                Value<String> status = const Value.absent(),
+                Value<bool> isReadmission = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<bool> isSynced = const Value.absent(),
               }) => AdmissionsCompanion.insert(
@@ -8173,6 +8309,8 @@ class $$AdmissionsTableTableManager
                 bedNumber: bedNumber,
                 dischargedAt: dischargedAt,
                 uciPriority: uciPriority,
+                status: status,
+                isReadmission: isReadmission,
                 createdAt: createdAt,
                 isSynced: isSynced,
               ),

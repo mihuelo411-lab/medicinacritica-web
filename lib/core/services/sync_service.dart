@@ -169,6 +169,8 @@ class SyncService {
             bedNumber: drift.Value(a['bed_number']),
             dischargedAt: drift.Value(DateTime.tryParse(a['discharged_at'] ?? '')),
             uciPriority: drift.Value(a['uci_priority']),
+            status: drift.Value(a['status']?.toString() ?? 'activo'),
+            isReadmission: drift.Value(a['is_readmission'] == true),
             createdAt: drift.Value(DateTime.tryParse(a['created_at'] ?? '') ?? DateTime.now()),
             isSynced: const drift.Value(true),
           ),

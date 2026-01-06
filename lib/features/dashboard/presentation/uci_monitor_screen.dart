@@ -17,6 +17,7 @@ import '../../clinical_history/presentation/indications_screen.dart';
 import '../../exams/presentation/exam_results_screen.dart';
 import '../../../../core/database/database.dart'; // For ActiveAdmission types if needed or models
 import '../../../../core/services/supabase_service.dart';
+import '../../../../core/services/sync_service.dart';
 
 class UciMonitorScreen extends StatefulWidget {
   final bool showAdminControls;
@@ -38,6 +39,9 @@ class _UciMonitorScreenState extends State<UciMonitorScreen> {
   Map<int, ActiveAdmission> _occupiedBeds = {};
   Map<int, bool> _vasoactiveStatus = {};
   bool _isLoading = true;
+  int _totalPatients = 0;
+  int _dischargedPatients = 0;
+  int _activeReadmissions = 0;
 
   @override
   void initState() {
@@ -66,13 +70,44 @@ class _UciMonitorScreenState extends State<UciMonitorScreen> {
     }
 
     final vasoMap = await _fetchVasoactiveStatus(map);
+    final readmissionCount = admissions.where((a) => a.admission.isReadmission).length;
+    final dischargedCount = await _fetchDischargedCount();
+    final totalPatients = await _fetchTotalPatientsCount();
 
     if (mounted) {
       setState(() {
         _occupiedBeds = map;
         _vasoactiveStatus = vasoMap;
+        _activeReadmissions = readmissionCount;
+        _dischargedPatients = dischargedCount;
+        _totalPatients = totalPatients;
         _isLoading = false;
       });
+    }
+  }
+
+  Future<int> _fetchDischargedCount() async {
+    try {
+      final row = await appDatabase.customSelect(
+        'SELECT COUNT(*) AS total FROM admissions WHERE status = ?',
+        variables: [drift.Variable.withString('alta')],
+        readsFrom: {appDatabase.admissions},
+      ).getSingle();
+      return row.read<int>('total');
+    } catch (_) {
+      return 0;
+    }
+  }
+
+  Future<int> _fetchTotalPatientsCount() async {
+    try {
+      final row = await appDatabase.customSelect(
+        'SELECT COUNT(*) AS total FROM patients',
+        readsFrom: {appDatabase.patients},
+      ).getSingle();
+      return row.read<int>('total');
+    } catch (_) {
+      return 0;
     }
   }
 
@@ -295,6 +330,68 @@ class _UciMonitorScreenState extends State<UciMonitorScreen> {
                 ),
               ),
 
+              // 3b. Status summary columns
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final isNarrow = constraints.maxWidth < 600;
+                      final ingresadosCard = _StatusSummaryCard(
+                        title: 'Pacientes ingresados',
+                        highlight: occupiedCount.toString(),
+                        icon: Icons.sensor_occupied_outlined,
+                        metrics: [
+                          _StatusSummaryMetric(
+                            label: 'Activos en cama',
+                            value: occupiedCount.toString(),
+                            color: const Color(0xFF34C759),
+                          ),
+                          _StatusSummaryMetric(
+                            label: 'Reingresos detectados',
+                            value: _activeReadmissions.toString(),
+                            color: const Color(0xFF9C27B0),
+                          ),
+                        ],
+                      );
+                      final totalesCard = _StatusSummaryCard(
+                        title: 'Pacientes totales',
+                        highlight: _totalPatients.toString(),
+                        icon: Icons.groups_2_outlined,
+                        metrics: [
+                          _StatusSummaryMetric(
+                            label: 'Dados de alta (histórico)',
+                            value: _dischargedPatients.toString(),
+                            color: const Color(0xFFFF9500),
+                          ),
+                          _StatusSummaryMetric(
+                            label: 'Actualmente en cama',
+                            value: occupiedCount.toString(),
+                            color: const Color(0xFF5AC8FA),
+                          ),
+                        ],
+                      );
+                      if (isNarrow) {
+                        return Column(
+                          children: [
+                            ingresadosCard,
+                            const SizedBox(height: 12),
+                            totalesCard,
+                          ],
+                        );
+                      }
+                      return Row(
+                        children: [
+                          Expanded(child: ingresadosCard),
+                          const SizedBox(width: 12),
+                          Expanded(child: totalesCard),
+                        ],
+                      );
+                    },
+                  ),
+                ),
+              ),
+
 
               // 4. Section Title
               SliverToBoxAdapter(
@@ -431,9 +528,15 @@ class _UciMonitorScreenState extends State<UciMonitorScreen> {
             AdmissionsCompanion(
               bedNumber: const drift.Value<int?>(null),
               dischargedAt: drift.Value(dischargeDate),
+              status: const drift.Value('alta'),
               isSynced: const drift.Value(true),
             ),
           );
+      try {
+        await SyncService(appDatabase, SupabaseService()).syncAll();
+      } catch (syncError) {
+        debugPrint('Full sync after discharge failed: $syncError');
+      }
     } catch (error) {
       await (appDatabase.update(appDatabase.admissions)
             ..where((tbl) => tbl.id.equals(admissionId)))
@@ -441,6 +544,7 @@ class _UciMonitorScreenState extends State<UciMonitorScreen> {
             AdmissionsCompanion(
               bedNumber: const drift.Value<int?>(null),
               dischargedAt: drift.Value(dischargeDate),
+              status: const drift.Value('alta'),
               isSynced: const drift.Value(false),
             ),
           );
@@ -546,6 +650,7 @@ class _GlassPatientCard extends StatelessWidget {
     final bool isCritical = isOccupied && (admission!.admission.sofaScore ?? 0) > 6; // Real logic based on SOFA?
     final bool isVentilated = false; // Need data for this, defaulting to false for now
     final bool isOnVasoactives = vasoactiveActive ?? false;
+    final bool isReadmission = admission?.admission.isReadmission ?? false;
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final primaryTextColor = isDark ? Colors.white : Colors.black87;
@@ -660,6 +765,7 @@ class _GlassPatientCard extends StatelessWidget {
                           const SizedBox(height: 8),
                           Wrap(
                             spacing: 6,
+                            runSpacing: 6,
                             children: [
                               if (isVentilated)
                                 const _MiniBadge(icon: Icons.air, color: Color(0xFF5AC8FA)), // Light Blue
@@ -667,6 +773,8 @@ class _GlassPatientCard extends StatelessWidget {
                                 const _MiniBadge(icon: Icons.bolt, color: Color(0xFFFF9500)),
                               if (isCritical)
                                 const _MiniBadge(icon: Icons.monitor_heart, color: Color(0xFFFF6B60)), // Light Red
+                              if (isReadmission)
+                                const _ReingresoBadge(),
                             ],
                           ),
                         ] else ...[
@@ -901,6 +1009,129 @@ class _GlassPatientCard extends StatelessWidget {
 
 }
 
+class _StatusSummaryMetric {
+  final String label;
+  final String value;
+  final Color color;
+  const _StatusSummaryMetric({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+}
+
+class _StatusSummaryCard extends StatelessWidget {
+  final String title;
+  final String highlight;
+  final IconData icon;
+  final List<_StatusSummaryMetric> metrics;
+  const _StatusSummaryCard({
+    required this.title,
+    required this.highlight,
+    required this.icon,
+    required this.metrics,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: isDark ? Colors.white.withOpacity(0.05) : Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.05),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(isDark ? 0.35 : 0.08),
+            blurRadius: 25,
+            offset: const Offset(0, 14),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: const Color(0xFF5A6AF0)),
+          const SizedBox(height: 10),
+          Text(
+            title.toUpperCase(),
+            style: TextStyle(
+              fontSize: 11,
+              letterSpacing: 0.6,
+              fontWeight: FontWeight.w600,
+              color: isDark ? Colors.white70 : Colors.blueGrey,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            highlight,
+            style: TextStyle(
+              fontSize: 34,
+              fontWeight: FontWeight.w800,
+              letterSpacing: -1.2,
+              color: isDark ? Colors.white : Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 14),
+          ...metrics.map((metric) => _StatusMetricRow(metric: metric)).toList(),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatusMetricRow extends StatelessWidget {
+  final _StatusSummaryMetric metric;
+  const _StatusMetricRow({required this.metric});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Row(
+        children: [
+          Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(
+              color: metric.color,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: metric.color.withOpacity(0.4),
+                  blurRadius: 6,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              metric.label,
+              style: TextStyle(
+                fontSize: 13,
+                color: isDark ? Colors.white70 : Colors.grey.shade600,
+              ),
+            ),
+          ),
+          Text(
+            metric.value,
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: isDark ? Colors.white : Colors.black87,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _StatusDot extends StatelessWidget {
   final bool isCritical;
   const _StatusDot({required this.isCritical});
@@ -940,6 +1171,38 @@ class _MiniBadge extends StatelessWidget {
         shape: BoxShape.circle,
       ),
       child: Icon(icon, size: 14, color: color),
+    );
+  }
+}
+
+class _ReingresoBadge extends StatelessWidget {
+  const _ReingresoBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    const badgeColor = Color(0xFF9C27B0);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: badgeColor.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: const [
+          Icon(Icons.repeat, size: 13, color: badgeColor),
+          SizedBox(width: 4),
+          Text(
+            'Reingreso',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: badgeColor,
+              letterSpacing: 0.2,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

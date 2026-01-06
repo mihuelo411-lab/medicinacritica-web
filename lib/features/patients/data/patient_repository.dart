@@ -72,7 +72,11 @@ class LocalPatientRepository implements PatientRepository {
       innerJoin(db.patients, db.patients.id.equalsExp(db.admissions.patientId))
     ]);
     // Filter for active (not discharged) and assigned beds
-    query.where(db.admissions.dischargedAt.isNull() & db.admissions.bedNumber.isNotNull());
+    query.where(
+      db.admissions.dischargedAt.isNull() &
+      db.admissions.bedNumber.isNotNull() &
+      db.admissions.status.equals('activo'),
+    );
     
     final rows = await query.get();
     return rows.map((row) {
@@ -144,6 +148,8 @@ class LocalPatientRepository implements PatientRepository {
           rr: Value(data['rr']),
           o2Sat: Value(data['o2_sat']),
           temp: Value(data['temp']),
+          status: Value(data['status']?.toString() ?? 'activo'),
+          isReadmission: Value(data['is_readmission'] == true),
           isSynced: const Value(true),
         );
 
@@ -172,6 +178,7 @@ class LocalPatientRepository implements PatientRepository {
     final stillOccupied = await (db.select(db.admissions)
           ..where((tbl) => tbl.dischargedAt.isNull())
           ..where((tbl) => tbl.bedNumber.isNotNull())
+          ..where((tbl) => tbl.status.equals('activo'))
           ..where((tbl) => tbl.isSynced.equals(true)))
         .get();
 
@@ -181,12 +188,12 @@ class LocalPatientRepository implements PatientRepository {
         .toList();
     if (missingIds.isEmpty) return;
 
-    final remoteStatuses = await SupabaseService().fetchAdmissionsByIds(missingIds);
-    final statusById = <int, Map<String, dynamic>>{};
-    for (final status in remoteStatuses) {
-      final id = status['id'] as int?;
-      if (id != null) statusById[id] = status;
-    }
+      final remoteStatuses = await SupabaseService().fetchAdmissionsByIds(missingIds);
+      final statusById = <int, Map<String, dynamic>>{};
+      for (final status in remoteStatuses) {
+        final id = status['id'] as int?;
+        if (id != null) statusById[id] = status;
+      }
 
     final now = DateTime.now();
     for (final id in missingIds) {
@@ -194,10 +201,14 @@ class LocalPatientRepository implements PatientRepository {
       final dischargedAt = remote != null
           ? DateTime.tryParse(remote['discharged_at']?.toString() ?? '') ?? now
           : now;
+      final remoteStatus = remote?['status']?.toString() ?? 'alta';
+      final remoteReadmission = remote?['is_readmission'] == true;
       await (db.update(db.admissions)..where((tbl) => tbl.id.equals(id))).write(
         AdmissionsCompanion(
           bedNumber: const Value<int?>(null),
           dischargedAt: Value(dischargedAt),
+          status: Value(remoteStatus),
+          isReadmission: Value(remoteReadmission),
           isSynced: const Value(true),
         ),
       );
@@ -224,7 +235,8 @@ class LocalPatientRepository implements PatientRepository {
     if (bedNumber != null) {
       existingByBed = await (db.select(db.admissions)
             ..where((tbl) => tbl.bedNumber.equals(bedNumber))
-            ..where((tbl) => tbl.dischargedAt.isNull()))
+            ..where((tbl) => tbl.dischargedAt.isNull())
+            ..where((tbl) => tbl.status.equals('activo')))
           .getSingleOrNull();
     }
 
