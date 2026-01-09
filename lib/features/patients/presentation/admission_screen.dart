@@ -47,6 +47,10 @@ class _AdmissionScreenState extends State<AdmissionScreen> {
   final _educationController = TextEditingController();
   final _familyController = TextEditingController();
   final _familyPhoneController = TextEditingController();
+  TextEditingController? _familyATController;
+  TextEditingController? _familyAFController;
+  TextEditingController get _familyAtController => _familyATController ??= TextEditingController();
+  TextEditingController get _familyAfController => _familyAFController ??= TextEditingController();
   final _nameFocus = FocusNode();
   final _hcFocus = FocusNode();
   final _phoneController = TextEditingController();
@@ -928,6 +932,38 @@ class _AdmissionScreenState extends State<AdmissionScreen> {
                 ),
                 keyboardType: TextInputType.phone,
              ),
+             const SizedBox(height: 16),
+             Row(
+               children: [
+                 Expanded(
+                   child: TextFormField(
+                     controller: _familyAtController,
+                     decoration: InputDecoration(
+                       labelText: 'A.T',
+                       helperText: 'Referido en formato (solo PDF)',
+                       prefixIcon: const Icon(Icons.badge, color: Colors.blueGrey),
+                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                       filled: true,
+                       fillColor: Colors.grey.shade50,
+                     ),
+                   ),
+                 ),
+                 const SizedBox(width: 12),
+                 Expanded(
+                   child: TextFormField(
+                     controller: _familyAfController,
+                     decoration: InputDecoration(
+                       labelText: 'A.F',
+                       helperText: 'Referido en formato (solo PDF)',
+                       prefixIcon: const Icon(Icons.badge_outlined, color: Colors.blueGrey),
+                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                       filled: true,
+                       fillColor: Colors.grey.shade50,
+                     ),
+                   ),
+                 ),
+               ],
+             ),
            ],
     );
   }
@@ -1433,6 +1469,8 @@ class _AdmissionScreenState extends State<AdmissionScreen> {
         occupation: _occupationController.text,
         familyPhone: _familyPhoneController.text,
         responsibleFamily: _familyController.text,
+        familyAt: _familyAtController.text,
+        familyAf: _familyAfController.text,
         placeOfBirth: _placeOfBirthController.text,
         insuranceType: _insuranceTypeController.text,
         uciPriority: _uciPriorityController.text,

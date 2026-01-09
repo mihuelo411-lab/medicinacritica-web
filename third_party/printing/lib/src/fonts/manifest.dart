@@ -17,7 +17,7 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:flutter/services.dart';
+import 'package:flutter/services.dart' as services;
 
 import '../mutex.dart';
 
@@ -39,30 +39,48 @@ mixin AssetManifest {
     await _mutex.acquire();
     try {
       if (!_ready) {
-        try {
-          final jsonString = await rootBundle.loadString('AssetManifest.json');
-          final jsonData = json.decode(jsonString) as Map<String, dynamic>;
-          _assets.addAll(jsonData.keys);
-        } catch (e) {
-          assert(() {
-            // ignore: avoid_print
-            print(
-              'Error loading AssetManifest.json $e Try to call first:\nWidgetsFlutterBinding.ensureInitialized();',
-            );
-            return true;
-          }());
-
-          rootBundle.evict('AssetManifest.json');
-          _failed = true;
-          _ready = true;
+        final loaded = await _loadManifest();
+        if (!loaded) {
           return false;
         }
-        _ready = true;
       }
     } finally {
       _mutex.release();
     }
 
     return _assets.contains(key);
+  }
+
+  static Future<bool> _loadManifest() async {
+    try {
+      final manifest =
+          await services.AssetManifest.loadFromAssetBundle(services.rootBundle);
+      _assets.addAll(manifest.listAssets());
+      _ready = true;
+      return true;
+    } catch (_) {
+      // Fallback for older Flutter versions where binary manifest API
+      // may not exist or not yet available.
+      try {
+        final jsonString =
+            await services.rootBundle.loadString('AssetManifest.json');
+        final jsonData = json.decode(jsonString) as Map<String, dynamic>;
+        _assets.addAll(jsonData.keys);
+        _ready = true;
+        return true;
+      } catch (e) {
+        assert(() {
+          // ignore: avoid_print
+          print(
+            'Error loading AssetManifest $e. Try calling WidgetsFlutterBinding.ensureInitialized() first.',
+          );
+          return true;
+        }());
+        services.rootBundle.evict('AssetManifest.json');
+        _failed = true;
+        _ready = true;
+        return false;
+      }
+    }
   }
 }

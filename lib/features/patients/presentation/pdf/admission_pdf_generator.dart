@@ -1,11 +1,11 @@
-import 'dart:typed_data';
-import 'package:flutter/services.dart' show rootBundle;
+import 'package:flutter/foundation.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import '../../../../core/database/database.dart';
 
 class AdmissionPdfGenerator {
+  static const double _perforationExtraMargin = 24;
   static Future<void> generateAndPrint({
     required Patient patient,
     required AdmissionsCompanion admission,
@@ -22,6 +22,8 @@ class AdmissionPdfGenerator {
     required String insuranceType,
     required String familyPhone,
     required String responsibleFamily,
+    required String familyAt,
+    required String familyAf,
     required String uciPriority,
     
     // Admission Dates
@@ -54,14 +56,12 @@ class AdmissionPdfGenerator {
     String? secondarySignatureName,
     String? secondarySignatureRole,
   }) async {
-    final pdf = pw.Document();
-
     // Load Logo safely
     pw.ImageProvider? logoImage;
     try {
       logoImage = await imageFromAssetBundle('assets/images/logo_hospital.jpeg');
     } catch (e) {
-      print('Error loading logo: $e');
+      debugPrint('Error loading logo: $e');
     }
 
     // Load Fonts safely
@@ -98,6 +98,8 @@ class AdmissionPdfGenerator {
         insuranceType: insuranceType,
         responsibleFamily: responsibleFamily,
         familyPhone: familyPhone,
+        familyAt: familyAt,
+        familyAf: familyAf,
         uciPriority: uciPriority,
         hospitalAdmissionDateTime: hospitalAdmissionDateTime,
         uciAdmissionDateTime: uciAdmissionDateTime,
@@ -162,6 +164,8 @@ class AdmissionPdfGenerator {
     required String insuranceType,
     required String responsibleFamily,
     required String familyPhone,
+    required String familyAt,
+    required String familyAf,
     required String uciPriority,
     required String hospitalAdmissionDateTime,
     required String uciAdmissionDateTime,
@@ -195,14 +199,14 @@ class AdmissionPdfGenerator {
             bold: fontBold,
           ).copyWith(defaultTextStyle: pw.TextStyle(fontSize: fontSize, font: fontRegular)),
         ),
-        header: (context) => _buildHeader(logoImage, bedNumber),
-        footer: (context) => _buildFooter(context, patient, bedNumber),
-        build: (context) => [
+        header: (context) => _PerforationAwarePadding(child: _buildHeader(logoImage, bedNumber)),
+        footer: (context) => _PerforationAwarePadding(child: _buildFooter(context, patient, bedNumber)),
+        build: (context) => _wrapWithPerforationSpacing([
           // 1. FILIACIÓN
           _buildSectionHeader('I. FILIACIÓN Y DATOS ADMINISTRATIVOS'),
           _buildPatientInfo(
             patient, age, sex, birthDate, civilStatus, education, religion, 
-            occupation, placeOfBirth, insuranceType, uciPriority, responsibleFamily, familyPhone, 
+            occupation, placeOfBirth, insuranceType, uciPriority, responsibleFamily, familyPhone, familyAt, familyAf,
             hospitalAdmissionDateTime, uciAdmissionDateTime,
             sofaScore, apacheScore, nutricScore
           ),
@@ -266,7 +270,7 @@ class AdmissionPdfGenerator {
             secondarySignatureName: secondarySignatureName,
             secondarySignatureRole: secondarySignatureRole,
           ),
-        ],
+        ]),
       ),
     );
     return pdf;
@@ -285,7 +289,7 @@ class AdmissionPdfGenerator {
               children: [
                 pw.Text('HOSPITAL REGIONAL DOCENTE DE TRUJILLO', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 14)),
                 pw.Text('DEPARTAMENTO DE EMERGENCIA Y CUIDADOS CRÍTICOS', style: const pw.TextStyle(fontSize: 10)),
-                pw.Text('UNIDAD DE CUIDADOS INTENSIVOS', style: const pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
+                pw.Text('UNIDAD DE CUIDADOS INTENSIVOS', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
               ],
             ),
             pw.Container(
@@ -324,6 +328,9 @@ class AdmissionPdfGenerator {
       ),
     );
   }
+
+  static List<pw.Widget> _wrapWithPerforationSpacing(List<pw.Widget> widgets) =>
+      widgets.map(_PerforationAwarePadding.wrap).toList();
 
   static pw.Widget _buildSignatureSection({
     required double fontSize,
@@ -404,7 +411,7 @@ class AdmissionPdfGenerator {
   static pw.Widget _buildPatientInfo(
     Patient p, String age, String sex, String birthDate, String civil, 
     String edu, String religion, String occupation, String placeOfBirth, String insurance, String priority,
-    String relative, String relPhone,
+    String relative, String relPhone, String familyAt, String familyAf,
     String admHosp, String admUci,
     String sofa, String apache, String nutric,
   ) {
@@ -438,6 +445,10 @@ class AdmissionPdfGenerator {
             _PdfField('Tipo Seguro:', insurance),
             _PdfField('Prioridad UCI:', priority),
             _PdfField('Familiar Responsable:', relative, 2),
+          ]),
+          _buildRowMulti([
+            _PdfField('A.T:', familyAt.isNotEmpty ? familyAt : '-'),
+            _PdfField('A.F:', familyAf.isNotEmpty ? familyAf : '-'),
           ]),
           _buildRowMulti([
             _PdfField('Teléf. Familiar:', relPhone),
@@ -518,4 +529,30 @@ class _PdfField {
   final String value;
   final int flex;
   const _PdfField(this.label, this.value, [this.flex = 1]);
+}
+
+class _PerforationAwarePadding extends pw.StatelessWidget {
+  _PerforationAwarePadding({required this.child});
+
+  final pw.Widget child;
+
+  static pw.Widget wrap(pw.Widget child) => _PerforationAwarePadding(child: child);
+
+  @override
+  pw.Widget build(pw.Context context) {
+    final isFirstPage = context.pageNumber == 1;
+    final isSecondPage = context.pageNumber == 2;
+
+    if (!isFirstPage && !isSecondPage) {
+      return child;
+    }
+
+    final double left = isFirstPage ? AdmissionPdfGenerator._perforationExtraMargin : 0;
+    final double right = isSecondPage ? AdmissionPdfGenerator._perforationExtraMargin : 0;
+
+    return pw.Padding(
+      padding: pw.EdgeInsets.only(left: left, right: right),
+      child: child,
+    );
+  }
 }

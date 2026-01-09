@@ -437,6 +437,8 @@ class _ClinicalHistoryScreenState extends State<ClinicalHistoryScreen> with Sing
                        occupation: data.patient.occupation ?? '-',
                        familyPhone: data.patient.phone ?? '-', 
                        responsibleFamily: data.patient.familyContact ?? '-',
+                       familyAt: '-',
+                       familyAf: '-',
                        uciPriority: adm.uciPriority ?? '-',
                        hospitalAdmissionDateTime: DateFormat('dd/MM/yyyy HH:mm').format(adm.admissionDate),
                        uciAdmissionDateTime: DateFormat('dd/MM/yyyy HH:mm').format(adm.admissionDate), 
